@@ -32,10 +32,11 @@ below is in `gaps.md` (G1-G10, measurements M1-M5) and `literature.md`.
 | 4 | The marginal information of a calls-only code graph over lexical search | G6 | low in this venue | medium | medium | high (done, CPU) | done | none (tools already removed) |
 | 5 | Harness-fit LoRA: distilling the 31B's harness behaviour into E4B | G8 | low-medium | medium | high | medium | poor (GPU) | direct but costly |
 
-Recommendation: **#1 as the paper**, with #2 folded in as a short evaluation section only if the
-noise model it needs comes out of #1's repeated samples anyway (it does: per-task success
-frequencies). #3 is a fallback if #1 dies at its go/no-go on 2026-10-25. #4 becomes one paragraph
-of related evidence. #5 is not recommended for the paper.
+Recommendation: **#1 (revised to the four-arm allocation study after review) as the paper.** #2
+at most one paragraph: our E4B noise is not the leaderboard's 31B noise, and the private
+leaderboard resolves only after the paper deadline. #3 is the fallback if #1's pipeline gate
+fails on 2026-10-25. #4 becomes one paragraph of related evidence. #5 is not recommended for the
+paper.
 
 ## 1. Spending a small agent's idle wall-clock: depth, retry, width or size?
 
@@ -229,12 +230,12 @@ The agents run experiments overnight and on weekends; the author reviews and wri
 | Thu 22/10 | Literature, gaps, proposals; latency curves M1 on the Mac; Mac harness spike started | scout | |
 | Fri 23/10 | Mac harness scores the calibration tasks (gold check); first E4B attempts, r = 4 | scout agent | Mac harness works? |
 | Sat 24/10 | r = 4 on 12-14 tasks; offline S0/S1; Kaggle quota resets 00:00 | scout agent | |
-| Sun 25/10 | **Go/no-go**: pass@4 - pass@1 >= 2 tasks; else switch to #3 | Matis | go / switch |
-| **Mon 26/10** | **Topic locked**; pre-register hypotheses H1-H3, selectors and analysis script (hash in the repo) | Matis | locked |
-| 26/10-01/11 | Full Mac runs: E4B r = 8 on all Mac-scorable tasks (two nights), E2B r = 8 (one night); S2/S3 selectors; latency curves for 12B | agents | |
-| by 01/11 | Scorer anchor: e4b-k (LoopAgent k = 4 + S1) on the 14 calibration tasks on 4xL4, plus the 2-minute l(b) microbenchmark | score agent | offline best@k vs real agent |
-| 02/11-05/11 | Analysis frozen; figures (pass@k, selection efficiency, resolved-at-T); first full draft | scout + Matis | |
-| 06/11-09/11 | Devil's-advocate review, ablation gaps filled (temperature, sequential vs batched); public reproduction notebook (no competition data) | agents + Matis | |
+| Sun 25/10 | **Go/no-go gate** (three conditions in section 1): pipeline scores the 14 tasks; t(4)/t(1) <= 1.6; >= 3 mixed tasks at r = 4. Else 12B as main model, or #3 if the pipeline fails | Matis | go / adapt / switch |
+| **Mon 26/10** | **Topic locked**; pre-register H1-H3, arms, selectors and analysis script (hash in the repo); make more tasks Mac-scorable (inline_snapshot, local httpbin) | Matis + agents | locked |
+| 26/10-01/11 | Full Mac runs: A3 (E4B, r = 8) and A0/A1/A2 (E4B, r = 4) on all Mac-scorable tasks, A4 (12B, r = 4); end-to-end t(b); selectors S0-S3 frozen | agents | |
+| by 01/11 | Scorer anchor (if quota/Modal allows): e4b-k (sequential A3, k = 4 + S1) on the 14 calibration tasks on 4xL4, plus the 2-minute l(b) microbenchmark | score agent | offline best@k vs real agent |
+| 02/11-05/11 | Analysis frozen; figures (per-task heterogeneity, arms at matched T, selectors at k <= 4, t(b)); first full draft | scout + Matis | |
+| 06/11-09/11 | Devil's-advocate review, missing ablations filled (temperature, sequential vs batched); reproduction package on public tasks only | agents + Matis | |
 | 10/11-11/11 | Final edit to 3,000 words; optional arXiv PDF; writeup created on Kaggle as a draft | Matis | |
 | **Thu 12/11** | **Submit before 23:59 UTC (target 12:00)** | Matis | |
 
