@@ -217,6 +217,13 @@ async def run_jobs(jobs, concurrency, deadline):
                            agent_s=round(ctx.agent_elapsed_seconds, 1))
                 (rdir / "patches").mkdir(exist_ok=True)
                 (rdir / "patches" / f"{task.instance_id}.r{rep}.patch").write_text(patch)
+                trace = Path(res.trace_json_path) if getattr(res, "trace_json_path", None) else None
+                if trace is None or not trace.is_file():
+                    trace = rdir / "traces" / f"trace_{task.instance_id}.json"
+                if trace.is_file():  # keep one trace per repeat; the harness reuses the name
+                    kept = trace.with_name(f"trace_{task.instance_id}.r{rep}.json")
+                    trace.rename(kept)
+                    rec["trace"] = str(kept.relative_to(OUT))
                 (rdir / "test_outputs").mkdir(exist_ok=True)
                 (rdir / "test_outputs" / f"{task.instance_id}.r{rep}.log").write_text(
                     (res.test_output or "")[-20000:])
