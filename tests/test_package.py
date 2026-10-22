@@ -20,9 +20,11 @@ def test_zip_has_agent_yaml_at_root(tmp_path):
 def test_two_base_models_are_rejected(tmp_path):
     agent = tmp_path / "agent"
     shutil.copytree(AGENT, agent)
-    sub = agent / "sub_agents" / "code_analyzer.yaml"
-    sub.write_text(sub.read_text().replace("gemma-4-31b-it-qat-w4a16-ct",
-                                           "gemma-4-12b-it-qat-w4a16-ct"))
+    sub = agent / "sub_agents" / "helper.yaml"
+    sub.parent.mkdir(exist_ok=True)
+    sub.write_text("name: helper\nmodel: gemma-4-12b-it-qat-w4a16-ct\ninstruction: help\n")
+    root = agent / "agent.yaml"
+    root.write_text(root.read_text() + "sub_agents:\n  - config_path: sub_agents/helper.yaml\n")
     with pytest.raises(ValueError, match="exactly one"):
         validate(agent)
 
