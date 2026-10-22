@@ -65,8 +65,15 @@ agents.
 
 **Not closed in the last six months.** Targeted searches (wall-clock + agent + test-time;
 latency + parallel + SWE; batch + best-of-n + consumer hardware) and the 2026-05 to 2026-10
-sweep return no SWE-agent paper with a batch-latency-aware budget. Closest new items:
-2604.16529, 2608.22191, 2608.15579, 2610.10833 (none prices width in wall-clock).
+sweep (1,217 relevant papers triaged) return no SWE-agent paper that allocates a wall-clock
+budget across depth, retry, width and model size on single-user hardware. Closest items, read:
+Risa (2608.22191, Appendix I.1: an n = 16 step costs about 2x one step on its vLLM server, a
+side remark), Latency and Token-Aware TTC (2509.09864, single-turn math on one A100, coding left
+as future work), SPLIT (2610.23255, 2026-10-16, allocates among sampling, model mixing and
+verification under imperfect verifiers, with latency as one possible cost, no batching, no
+depth or retry), SquidAgent (2610.08647, wall-clock criterion for parallelising agent layers),
+Inference-Time Amplification of Weak Reasoning Models (2605.14163, GPT-5.4 nano, 8 proposals,
+API tokens), Kozuchi (2608.15579), On the Clock (2610.10833).
 
 **Venue.** No paper-track entry announces it.
 
@@ -91,7 +98,9 @@ open: FailFast-RestartSmart finds a cold restart worth +0.2 points and a restart
 diff as overlay +5.2 (Qwen3.6-27B, 2608.03222), while SWE-Residual (2610.25899) finds that
 starting from a predecessor's failed work costs 20.6-53.5 points.
 
-**Not closed.** No paper in the sweep studies under-use of a time budget by small SWE agents.
+**Not closed.** No paper in the sweep studies under-use of a time budget by small SWE agents;
+the budget papers it lists (2607.19338 CodeRescue, 2609.38147 meta-reasoning under remaining
+budget, 2610.25525 StopLoss, 2610.09944 AgentTime) address overrun, escalation or abort.
 
 **Venue.** None announced.
 
@@ -112,8 +121,11 @@ Nobody reports what a cheap execution-based selector (existing tests of the touc
 import and smoke checks, agreement between candidates) delivers at k = 2-4 for a 4B model,
 nor how much of the coverage gain it keeps.
 
-**Not closed.** All 2026 selection papers in the sweep use k >= 8 or a trained or frontier
-verifier.
+**Not closed.** The 2026 selection papers in the sweep use k >= 8 or a trained or frontier
+verifier: 2605.14163 (critic-comparator over 8 proposals, 67.0% to 76.4% for GPT-5.4 nano),
+2610.03984 (trained self-verification, eight samples), 2610.10242 (TestGRAD, evolved test
+suites over an ensemble), 2608.15579. SPLIT (2610.23255) gives a model of selection under
+imperfect, correlated verifiers that we can reuse to analyse k <= 4.
 
 ## G4. Selection on noise: best-of-resubmissions on small agent leaderboards
 
@@ -133,7 +145,13 @@ report), most of the top of the table is consistent with selection on run noise.
 leaderboard (revealed after 2026-12-02) gives a rare out-of-sample check of any shrinkage model
 fitted now, so a prediction can be pre-registered before the paper deadline.
 
-**Not closed.** No paper in the sweep models best-of-n resubmission on an agent leaderboard.
+**Not closed.** The sweep finds many 2026 noise papers, none on best-of-n resubmission:
+SWE-bench's top 30 are not separable pairwise (2609.17394), the number of tasks needed varies
+sharply by benchmark (2607.12338), run-to-run variation exceeds differences between agent and
+model pairings (2609.33812), about 54% of outcome variance comes from repeated runs
+(2610.01618). The best-of-N effect is documented for Chatbot Arena (The Leaderboard Illusion,
+2504.20879) and for deterministic models on Kaggle holdouts (The Ladder, 1502.04585; Roelofs et
+al., NeurIPS 2019), not for stochastic agents.
 
 **Limits.** Only each team's best public score and submission count are public; per-submission
 histories are not. Heterogeneous team skill confounds submission count, so the analysis needs a
