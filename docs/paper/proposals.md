@@ -10,8 +10,13 @@ below is in `gaps.md` (G1-G10, measurements M1-M5) and `literature.md`.
   a 4xL4 hour costs at least 2 quota hours. One 31B pass over 30 tasks takes 3-3.5 h of wall time,
   more than a week's quota. A small Modal budget (E4B/E2B only) may open, at the coordinator's
   discretion. The Mac (M4 Pro, 24 GB) runs E2B and E4B at 4 bits through mlx-lm, at 111 and 67
-  decode tokens per second respectively (M1), and 12B at 4 bits fits. So: **experiments that run on the Mac
-  or on CPU, with at most one or two small GPU runs to anchor them on the scorer's stack.**
+  decode tokens per second respectively (M1), and 12B at 4 bits fits (mlx-community/gemma-4-12B-it-4bit).
+  **Update 2026-10-22 late:** a Modal budget of 10 $ was approved for E4B/E2B (one L4, TP1, official
+  harness with the subprocess sandbox, image pinned to the Kaggle notebook versions; gold check
+  40/40 on a 40-task pool). One L4 serving one agent is itself the single-user setting the paper
+  is about, so Modal can carry most of the attempt volume (E4B attempt about 66 s on L4) while the
+  Mac gives the laptop point (E4B attempts take 2-11 min there in the first pilot runs). So:
+  **experiments on Modal L4 and the Mac, CPU for selection and analysis, at most one 4xL4 anchor.**
 - **Venue.** The graph and localization corner already has at least six announced entries; the
   trajectory-distillation corner has a dataset and a kit (gaps.md G6, G8). Avoid both as main
   topics.
@@ -60,8 +65,9 @@ same wall-clock.
 
 - **A0 baseline**: E4B as in `variants/e4b` (its own temperature, 0.2), one attempt. This is the
   pass@1 reference, not a temperature-1.0 sample.
-- **A1 depth**: one attempt, remaining time injected through the free `get_status` call and a
-  mandatory reproduce-then-verify step before `submit_patch` (in the calibration run, 4 of 10 E4B
+- **A1 depth**: one attempt with a mandatory reproduce-then-verify step before `submit_patch`
+  (the score agent's `variants/e4b-v2`: a /tmp/repro.py that must fail before and pass after the
+  edit, the nearest existing test file run before submitting, a 36-call plan, thinking 4096) (in the calibration run, 4 of 10 E4B
   failures ran no test or snippet at all and both successes did; HANDOFF, trace reading).
 - **A2 informed retry**: sequential attempts; each new attempt starts from a clean tree and sees
   the previous diff and its test output (cf. FailFast-RestartSmart 2608.03222, +5.2 points with
@@ -113,9 +119,12 @@ same wall-clock.
 - **Statistics.** Paired permutation test on per-task expected outcomes (continuous, more power
   than binary sign tests); all runs logged with seeds; no selector or prompt tuning on the
   evaluation tasks.
-- **Compute.** Mac: E4B attempt time being measured (1-2 min expected); A3 at r = 8 on 60-100
-  tasks is 8-26 Mac-hours, two to three nights; A0-A2 and A4 at r = 4 about as much again. GPU: at
-  most one anchor run (about 1 h of 4xL4) plus the microbenchmark.
+- **Compute.** First Mac pilot: E4B attempts take 2-11 min each on the Mac (vs about 66 s on
+  L4), so the Mac cannot carry r = 8 on 100 tasks; it carries a laptop subset (14-30 tasks, r = 4)
+  and the end-to-end t(b) measurement. Volume goes to Modal L4 (10 $ at about 0.80 $/h is about
+  12 L4-hours, i.e. several hundred E4B attempts with setup), arm A1 being the score agent's
+  `variants/e4b-v2` so both tracks share one YAML. A4 (12B) is the most expensive arm and is run
+  on the smallest task subset. GPU: at most one 4xL4 anchor plus the microbenchmark.
 
 ### Go/no-go gate (2026-10-24/25)
 
