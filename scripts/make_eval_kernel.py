@@ -44,6 +44,7 @@ def main() -> None:
     ap.add_argument("--repeats", type=int, default=1)
     ap.add_argument("--deadline-hours", type=float, default=10.5)
     ap.add_argument("--slug", default="g4agent-eval")
+    ap.add_argument("--bench", action="store_true", help="decode microbenchmark after startup")
     args = ap.parse_args()
 
     variants = dict(v.split("=", 1) for v in (args.variant or ["v1=agent"]))
@@ -55,6 +56,7 @@ def main() -> None:
         "concurrency": args.concurrency,
         "repeats": args.repeats,
         "deadline_hours": args.deadline_hours,
+        "bench": args.bench,
     }
     out = SUBMISSIONS / args.slug
     out.mkdir(parents=True, exist_ok=True)

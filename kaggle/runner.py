@@ -189,6 +189,39 @@ def start_vllm(agent_dir):
     return server, models, adapters
 
 
+def decode_bench():
+    """Latency of n identical concurrent requests (256 tokens) on the live server: decode cost
+    of batching on the scorer's setup. Results in results/decode_bench.json."""
+    import concurrent.futures
+    import urllib.request
+    base = "http://127.0.0.1:8000/v1"
+    with urllib.request.urlopen(base + "/models", timeout=30) as r:
+        model_id = json.load(r)["data"][0]["id"]
+    body = json.dumps({"model": model_id, "prompt": "Write a long story about a lighthouse keeper.",
+                       "max_tokens": 256, "min_tokens": 256, "temperature": 0.0}).encode()
+
+    def one(_):
+        req = urllib.request.Request(base + "/completions", data=body,
+                                     headers={"Content-Type": "application/json"})
+        t = time.time()
+        with urllib.request.urlopen(req, timeout=600) as r:
+            out = json.load(r)
+        return time.time() - t, out["usage"]["completion_tokens"]
+
+    one(0)  # warm-up
+    rows = []
+    for n in (1, 2, 4, 8):
+        t = time.time()
+        with concurrent.futures.ThreadPoolExecutor(n) as ex:
+            res = list(ex.map(one, range(n)))
+        wall = time.time() - t
+        toks = res[0][1]
+        rows.append({"concurrent": n, "wall_s": round(wall, 2), "tokens_each": toks,
+                     "ms_per_step": round(1000 * max(r[0] for r in res) / max(1, toks), 1)})
+        log(f"decode bench {rows[-1]}")
+    (OUT / "decode_bench.json").write_text(json.dumps(rows, indent=2))
+
+
 async def run_jobs(jobs, concurrency, deadline):
     sem = asyncio.Semaphore(concurrency)
     done = 0
@@ -293,6 +326,11 @@ def main():
     else:
         first = next(iter(dirs.values()))
         server, models, _ = start_vllm(first)
+        if CONFIG.get("bench"):
+            try:
+                decode_bench()
+            except Exception as e:
+                log(f"decode bench failed: {e}")
         evs = {}
         for name, d in dirs.items():
             rdir = OUT / name
