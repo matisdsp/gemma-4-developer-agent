@@ -153,7 +153,10 @@ Large Language Monkeys (2407.21787, coverage vs samples); Latency and Token-Awar
 (2608.22191, n = 16 step about 2x one step, server); Inference-Time Amplification of Weak
 Reasoning Models (2605.14163, GPT-5.4 nano, 8 proposals 79.0% coverage, critic selection 76.4%
 vs 67.0% single, API tokens); Kozuchi (2608.15579, k = 8, 27B); SquidAgent (2610.08647,
-wall-clock criterion for parallelising agent layers); FailFast-RestartSmart (2608.03222). None
+wall-clock criterion for parallelising agent layers); FailFast-RestartSmart (2608.03222);
+SPLIT (2610.23255, 2026-10-16: allocation among sampling, model mixing and verification under
+imperfect verifiers, latency as one cost, no batching, no depth or retry; we reuse its selection
+model rather than compete with it). None
 compares depth, retry, width and size at matched wall-clock on single-user hardware for a small
 model. Venue: no announced entry.
 

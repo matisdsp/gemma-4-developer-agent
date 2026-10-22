@@ -2010,3 +2010,22 @@ Cross-reference: SWE-Effi measures resolve-vs-time curves; BATS names latency as
 - **Admitted limitations / future work**: No limitations section. The page does not say what content types the summariser receives (the "text parts only; tool outputs and diffs dropped" fact in this project comes from the task description / code, not from this page). Kotlin variant cuts the window back so that no function call is summarised without its response.
 - **Relevance**: Policy under test; its closest published analogues are OpenHands LLMSummarizingCondenser (keep_first + recent events) and the "T3 summary-only" tier of Harness-Design.
 
+
+## 7. Systematic sweep, 2026-05-01 to 2026-10-22
+
+Method: about 60 arXiv API queries sorted by submission date (2,953 unique papers), a keyword
+prefilter (1,741 triaged from title and abstract, 1,217 kept, 524 dropped as irrelevant), one-line
+contributions from the abstracts, and flags for possible collisions with eight candidate ideas.
+Counts kept per theme: scaffold/inference 153, training/RL/distillation 135,
+graphs/retrieval/localization 64, benchmarks/evaluation 329, context/memory/budget 115,
+small-models/efficiency 16, other relevant 405. The full triaged tables and the collision lists
+are in [`sweep_2026-05_to_2026-10.md`](sweep_2026-05_to_2026-10.md). Flags are generous; a flagged
+paper was read before being treated as a collision in `gaps.md`.
+
+Ten papers from the sweep most relevant to small open models as SWE agents: FrogNano
+(2609.07925, 4B trained by RL only), Arctic-SWE (2610.24914, Qwen3.5-4B 62.0% Verified), ROFT
+(2609.35741, 4B self-retrospection, 49.2%), SWE-MeM (2606.28434, learned memory, 43.4% at 4B),
+Steer, Don't Solve (2606.21811, 4B/8B critics), Dockerless (2606.28436, environment-free
+verifier, 9B-based), trajectory curation for LoRA (2607.17205), Inference-Time Amplification of
+Weak Reasoning Models (2605.14163), Coding Agents Have Converged (2609.17394), and the
+35,000-run compression study Beyond Token Savings (2609.32961).
