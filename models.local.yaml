@@ -1,0 +1,7 @@
+# Local routing for `swegemma eval`: the alias declared in agent/ -> a model on a local
+# OpenAI-compatible server. `path` is the LiteLLM model string (openai/<name served locally>).
+models:
+  gemma-4-31b-it-qat-w4a16-ct:
+    path: openai/gemma-4-31b-it
+    api_base: http://localhost:8000/v1
+    api_key: EMPTY
