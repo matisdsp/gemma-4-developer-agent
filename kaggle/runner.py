@@ -21,7 +21,8 @@ import traceback
 from pathlib import Path
 
 T0 = time.time()
-WORK = Path("/kaggle/working")
+WORK = Path(os.environ.get("G4_WORK", "/kaggle/working"))
+INPUT = os.environ.get("G4_INPUT", "/kaggle/input")
 OUT = WORK / "results"
 OUT.mkdir(parents=True, exist_ok=True)
 
@@ -46,14 +47,16 @@ for k, v in {
 
 
 def find_dir(marker, pattern):
-    hits = sorted(glob.glob(f"/kaggle/input/**/{marker}", recursive=True))
+    hits = sorted(glob.glob(f"{INPUT}/**/{marker}", recursive=True))
     hits = [h for h in hits if pattern in h] or hits
     if not hits:
-        raise SystemExit(f"cannot find {marker} under /kaggle/input")
+        raise SystemExit(f"cannot find {marker} under {INPUT}")
     return Path(hits[0]).parent
 
 
 def install_wheelhouse():
+    if os.environ.get("G4_SKIP_INSTALL"):  # Modal: the image already has the stack
+        return
     wheel_dirs = [Path(p).parent for p in glob.glob("/kaggle/input/**/swegemma*.whl", recursive=True)]
     if not wheel_dirs:
         raise SystemExit("wheelhouse dataset not attached")
@@ -153,8 +156,8 @@ def start_vllm(agent_dir):
     from swegemma.config import ALLOWED_ADAPTER_EXTENSIONS
     litellm.drop_params = True
     model = next(iter(discover_declared_models(agent_dir)))
-    paths = glob.glob(f"/kaggle/input/**/{model}/*/config.json", recursive=True) + \
-        glob.glob(f"/kaggle/input/**/{model}/config.json", recursive=True)
+    paths = glob.glob(f"{INPUT}/**/{model}/*/config.json", recursive=True) + \
+        glob.glob(f"{INPUT}/**/{model}/config.json", recursive=True)
     if not paths:
         raise SystemExit(f"weights for {model} not attached")
     model_path = Path(paths[0]).parent
