@@ -136,3 +136,87 @@ Scaling TTC for Agentic Coding (2604.16529, frontier model, tokens), Kozuchi (26
 On the Clock (2610.10833, time budgets, not SWE). None prices width in wall-clock on
 single-user hardware or studies k <= 4 for a 4B model. Venue: no announced entry.
 
+## 2. Selection on noise: the winner's curse on agent leaderboards
+
+Working title: *Best of Five Is Not Better: Resubmission Noise and the Winner's Curse on an Agent
+Leaderboard of 3,476 Teams.*
+
+- **Hypothesis.** Most of the spread at the top of the public leaderboard is selection on run
+  noise: a model with a common latent rate per recipe family plus the measured per-task flip
+  noise reproduces the observed rise of best score with submission count (M4), and predicts a
+  regression toward the plateau on the private split. Falsifiable twice: the fit on the public
+  table, then the private leaderboard after 2026-12-02 (pre-registered with a hash before
+  2026-11-12).
+- **Method.** Hierarchical model: team latent rate p_t (mixture over recipe families), per-task
+  success frequencies q_i measured on our own repeated runs (from #1), best-of-n_t observation
+  of k/58 truncated scores. Fit by likelihood on (best score, submission count). Predict each
+  team's expected private rank change. Compare with resubmission data published on the forum
+  (identical bundles: 13, 11, 9, 7, 7 tasks).
+- **Protocol.** CPU only; leaderboard snapshots over time (Kaggle CLI); simulation checks of
+  identifiability; sensitivity to the flip model.
+- **Expected.** A shrinkage correction that ranks teams better than raw best score; a rule of
+  thumb for how many resubmissions inflate a score by one task at n = 58.
+- **Negative result.** If submission count explains nothing once skill is modelled, best-of-n
+  inflation is negligible at this noise level, which is itself useful for organisers.
+- **Abandon.** If the model is not identifiable from (best score, count) alone in simulation.
+- **Collision.** Randomness in Agentic Evals (2602.07150), What Does a Harness Buy? (2610.04433),
+  pair-count intervals (2609.33012), DeltaSelect (2609.19607): noise is measured, best-of-n
+  leaderboard selection is not. Relevance to SE is indirect; works best as a section of #1.
+
+## 3. What the tests know that the issue does not
+
+Working title: *Unguessable Interfaces: How Often Hidden Tests Require Names the Issue Never
+States.*
+
+- **Hypothesis.** In freshly mined issue-resolution sets (not curated like SWE-bench Verified),
+  10-20% of tasks have tests that use identifiers introduced by the reference fix and absent
+  from the issue (M5: 21/129 here), and these tasks are near-unsolvable for every system, so
+  they cap resolution rates independently of agent skill.
+- **Method.** Static analysis of (issue, gold patch, test patch) triples on public benchmarks
+  with per-instance results of many systems (SWE-bench Verified/Lite experiment logs, SWE-rebench,
+  SWE-Gym), and on the 129 public tasks here; hand audit of a sample; correlation of the flag with
+  per-instance resolution across systems.
+- **Collision.** Between Spoilers and Guesswork (2610.22760) already extracts test-required
+  names to build minimal hints; Ambig-SWE (2502.13069) studies ambiguity with interaction. Our
+  margin would be the cross-system measurement and the uncurated-pipeline estimate. Thin but
+  safe; CPU-only; a resource (labels + script) is possible from public data only.
+
+## 4. The marginal information of a calls-only code graph
+
+Done as M3 (gaps.md G6). Not recommended as a paper: at least six announced entries in this
+venue work on the same graphs, one already reports the async omission and the near
+4-dimensional embeddings (codegraph-loc, forum 746035). Keep as one paragraph of evidence that
+the provided graph tools cannot help localization, which is why #1 spends compute on width and
+not on graph tools.
+
+## 5. Harness-fit LoRA from the 31B into E4B
+
+Not recommended for the paper: GPU-bound (trajectory generation with the 31B, QLoRA training,
+repeated evaluation) against 6 GPU-hours a week, and the venue already has a harness-format
+trajectory dataset and distillation kit (forum 748627). If #1 shows that width cannot help
+(systematic errors), this becomes the score agent's next lever, not a paper.
+
+## Calendar for direction 1 (to 2026-11-12)
+
+The agents run experiments overnight and on weekends; the author reviews and writes in short slots. Dates are UTC.
+
+| Date | Milestone | Who | Decision gate |
+|---|---|---|---|
+| Thu 22/10 | Literature, gaps, proposals; latency curves M1 on the Mac; Mac harness spike started | scout | |
+| Fri 23/10 | Mac harness scores the calibration tasks (gold check); first E4B attempts, r = 4 | scout agent | Mac harness works? |
+| Sat 24/10 | r = 4 on 12-14 tasks; offline S0/S1; Kaggle quota resets 00:00 | scout agent | |
+| Sun 25/10 | **Go/no-go**: pass@4 - pass@1 >= 2 tasks; else switch to #3 | Matis | go / switch |
+| **Mon 26/10** | **Topic locked**; pre-register hypotheses H1-H3, selectors and analysis script (hash in the repo) | Matis | locked |
+| 26/10-01/11 | Full Mac runs: E4B r = 8 on all Mac-scorable tasks (two nights), E2B r = 8 (one night); S2/S3 selectors; latency curves for 12B | agents | |
+| by 01/11 | Scorer anchor: e4b-k (LoopAgent k = 4 + S1) on the 14 calibration tasks on 4xL4, plus the 2-minute l(b) microbenchmark | score agent | offline best@k vs real agent |
+| 02/11-05/11 | Analysis frozen; figures (pass@k, selection efficiency, resolved-at-T); first full draft | scout + Matis | |
+| 06/11-09/11 | Devil's-advocate review, ablation gaps filled (temperature, sequential vs batched); public reproduction notebook (no competition data) | agents + Matis | |
+| 10/11-11/11 | Final edit to 3,000 words; optional arXiv PDF; writeup created on Kaggle as a draft | Matis | |
+| **Thu 12/11** | **Submit before 23:59 UTC (target 12:00)** | Matis | |
+
+Slack: two days (06-09/11 can absorb a late anchor run). If the scorer anchor cannot run
+(quota or Modal not approved), the paper rests on the Mac results plus the l(b) curve from the
+L4 microbenchmark alone, which is still verifiable.
+
+Note on publicity: the writeup becomes public on Kaggle under Matis's name after the deadline
+(an attached private notebook is made public too).
