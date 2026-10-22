@@ -26,7 +26,7 @@ below is in `gaps.md` (G1-G10, measurements M1-M5) and `literature.md`.
 
 | # | Direction | Gaps | Novelty | Generality | Relevance | Verifiability | Feasibility in 3 weeks | Synergy with score |
 |---|---|---|---|---|---|---|---|---|
-| 1 | Spend the idle budget: wall-clock-matched width for small local coding agents | G1, G2, G3 | high | high | high | high (Mac-reproducible) | good: Mac + 1 GPU anchor | direct (E4B bonus) |
+| 1 | Spending a small agent's idle wall-clock: depth, retry, width or size, at matched time | G1, G2, G3 | medium-high | high | high | high (Mac-reproducible) | fair: Mac pipeline to build, 1 GPU anchor | direct (E4B bonus) |
 | 2 | Selection on noise: the winner's curse on agent leaderboards, with a pre-registered private-leaderboard prediction | G4 | high | medium-high | medium | very high (CPU) | very good | indirect (final-pick strategy) |
 | 3 | What the tests know that the issue does not: measuring interface under-determination across SWE benchmarks | G5 | medium-low (2610.22760) | high | high | high (CPU) | good | small (prompt contract) |
 | 4 | The marginal information of a calls-only code graph over lexical search | G6 | low in this venue | medium | medium | high (done, CPU) | done | none (tools already removed) |
@@ -37,104 +37,125 @@ noise model it needs comes out of #1's repeated samples anyway (it does: per-tas
 frequencies). #3 is a fallback if #1 dies at its go/no-go on 2026-10-25. #4 becomes one paragraph
 of related evidence. #5 is not recommended for the paper.
 
-## 1. Spend the idle budget: wall-clock-matched width for small local coding agents
+## 1. Spending a small agent's idle wall-clock: depth, retry, width or size?
 
-Working title: *Width Is Almost Free: Spending a Small Coding Agent's Idle Wall-Clock Budget on
-Parallel Attempts.*
+Working title: *Idle Seconds: How a Small Local Coding Agent Should Spend a Fixed Wall-Clock
+Budget.* (Revised after the devil's-advocate review of 2026-10-22: the first version tested
+width alone, whose coverage gain is predictable from Large Language Monkeys 2407.21787 and whose
+near-free batching was already noted in a SWE paper, Risa 2608.22191 Appendix I.1. The
+contribution is now the allocation question at matched wall-clock, which stays informative
+whichever arm wins.)
 
-### Hypotheses (falsifiable)
+### Question
 
-- **H1 (coverage).** For Gemma 4 E4B on issue-resolution tasks, k independent attempts at
-  temperature 1.0 cover more tasks than one: pass@4 exceeds pass@1 by at least 2 tasks on the 14
-  calibration tasks and by at least 5 percentage points on the full Mac-scorable set. Null: E4B's
-  failures are systematic (the same misreading in every attempt, as Confident-and-wrong 2603.25764
-  reports for larger models), so coverage barely grows with k.
-- **H2 (selection at tiny k).** A cheap execution-based selector (existing tests of the touched
-  module + import check, then smallest diff) keeps at least half of the coverage gain at k = 4.
-  Null: selection at k <= 4 with no trained verifier is no better than taking the first
-  candidate (as for the agents' own tests in Kozuchi 2608.15579).
-- **H3 (wall-clock rule).** On single-user hardware the wall-clock cost of b concurrent attempts
-  is t(b) = t(1) * l(b)/l(1), with l the measured per-step decode latency (M1: l(2)/l(1) = 1.07,
-  l(4)/l(1) = 1.47 for E4B on the Mac). The number of attempts that fit in a budget T is then
-  n(b) = b * floor(T / t(b)), and the best b is predicted from l and the attempt-time
-  distribution alone. Prediction: at T = 7 min and t(1) ~ 1-2 min, b = 2-4 beats both b = 1
-  (sequential retries) and b = 8. Null: measured resolved-at-T does not follow the predicted
-  ordering.
+A small model in the official harness finishes a task in about 66 s of a 420 s budget (M2). On
+one machine serving one agent, what converts the remaining time into solved tasks: thinking and
+checking more within one attempt (depth), retrying with knowledge of the failed attempt
+(informed retry), independent attempts with a cheap selector (width, sequential or batched), or
+a single attempt of a larger model that uses the whole budget (size)? Same tasks, same harness,
+same wall-clock.
 
-### Method
+### Arms (all at the same per-task wall-clock T)
 
-1. Sampling once, analysing many ways. For each task, draw r = 8 independent attempts of the
-   unmodified E4B agent (official harness, same tools and prompt as `variants/e4b`, temperature
-   1.0), store every patch and its timings. Unbiased pass@k for any k <= r follows from the
-   number of successes c out of r (Chen et al. 2021 estimator), so k need not be re-run.
-2. Selectors, applied offline to random k-subsets of the r candidates: S0 first candidate;
-   S1 run the repository's existing tests nearest to the patched module + import check, pick
-   fewest failures then smallest diff; S2 agreement, pick the candidate whose normalised diff
-   (or behaviour on agent-written probes) is most common; S3 the model as judge (expected weak,
-   kept as a negative control, cf. SWE-PRM 2509.02360). Report best@k = resolved rate of the
-   selected candidate, and selection efficiency = (best@k - pass@1) / (pass@k - pass@1).
-3. Wall-clock accounting. Measure l(b) for each model on each platform (Mac M4 Pro via mlx-lm;
-   4xL4 vLLM via one 2-minute microbenchmark inside a kernel the score agent runs anyway), and the
-   empirical attempt-time distribution; compute resolved-at-T for sequential retries, batched
-   width and mixed schedules (H3).
-4. End-to-end anchor. One configuration (e4b-k: a LoopAgent of k = 4 attempts + S1 selector, the
-   design already recorded in the project notes) run once in the official harness on the scorer's stack on
-   the 14 calibration tasks, to check that offline best@k predicts the real agent within noise.
+- **A0 baseline**: E4B as in `variants/e4b` (its own temperature, 0.2), one attempt. This is the
+  pass@1 reference, not a temperature-1.0 sample.
+- **A1 depth**: one attempt, remaining time injected through the free `get_status` call and a
+  mandatory reproduce-then-verify step before `submit_patch` (in the calibration run, 4 of 10 E4B
+  failures ran no test or snippet at all and both successes did; HANDOFF, trace reading).
+- **A2 informed retry**: sequential attempts; each new attempt starts from a clean tree and sees
+  the previous diff and its test output (cf. FailFast-RestartSmart 2608.03222, +5.2 points with
+  the overlay vs +0.2 for a cold restart; SWE-Residual 2610.25899 warns of the opposite effect).
+- **A3 width**: k independent attempts (temperature 1.0), sequential (fits ADK today as a
+  LoopAgent) or batched (Mac only: concurrent sessions, each with its own sandbox), then a cheap
+  selector.
+- **A4 size**: one attempt of Gemma 4 12B with the same T (the next size the competition allows;
+  it fits the Mac at 4 bits).
 
-### Experimental protocol
+### Hypotheses (falsifiable, pre-registered with a hash before full runs)
 
-- Tasks: Mac-scorable public tasks (reference patch verified in the Mac subprocess sandbox; the
-  Kaggle subprocess sandbox scores 75/129). Report by repository and by issue year (2026 issues
-  postdate Gemma 4's release and limit memorisation).
-- Models: E4B (main), E2B (smaller), 12B if time allows (second point on the size axis); 31B only
-  through public numbers and the single scorer anchor, if quota allows.
-- Baselines: the single-attempt agent (pass@1); sequential retry with the same total time; the
-  oracle (pass@k) as the ceiling.
-- Metrics: pass@1, pass@k, best@k per selector, selection efficiency, resolved-at-T, distinct
-  non-empty patches per task (diversity), per-task success frequency c/r (noise model for #2).
-- Statistics: paired comparisons on the same tasks (exact sign test on discordant tasks), task
-  bootstrap intervals, all runs logged with seeds.
-- Ablations: temperature 0.2 vs 1.0 (diversity vs precision); k = 1-8; selector S0-S3;
-  sequential vs batched width; model size.
-- Budget: Mac E4B attempt about 1-2 min (being measured), so 50 tasks x 8 attempts is about
-  7-13 Mac-hours, i.e. two nights; selectors are CPU-only. GPU: one anchor run (about 1 h of 4xL4,
-  2-3 quota hours) plus the microbenchmark.
+- **H1 (heterogeneity, the precondition for width and retry).** E4B's per-task success is
+  heterogeneous: with r = 8 attempts, the share of tasks with 0 < c < 8 is at least 15%. We
+  report the fitted beta-binomial intra-task correlation and how far observed pass@k falls below
+  the homogeneous prediction 1 - (1 - p)^k. Null: errors are systematic
+  (Confident-and-wrong 2603.25764; Context-Contamination 2605.08563 shows the i.i.d. model
+  overestimates pass@3 by 17.4 points), so width and retry cannot pay. Caveat built in: at r = 8 a
+  task with true p = 0.1 shows c = 0 in 43% of draws, so "rare" and "systematic" are separated by
+  the fitted model, not by counting.
+- **H2 (selection at tiny k).** Selector S1 (existing tests nearest the patched module + import
+  check, then smallest diff) gives best@4 - pass@1 > 0 with a 90% task-bootstrap interval above
+  zero. Reported in tasks, with its interval; selection efficiency only as a secondary number.
+- **H3 (allocation).** At matched T on the Mac, the ranking of A1-A4 is not the ranking predicted
+  by token cost: batched A3 at b = 2-4 is at least as good as sequential A3 at equal T, and the
+  time model t(b) predicts measured end-to-end attempt times within 20% (prefill, tool and test
+  time and stragglers included). Null: measured times break the model (e.g. the server does not
+  batch, or tool time dominates), which is itself the practical answer for local agents.
 
-### Expected result, and what a negative one would show
+### Method and protocol
 
-Expected: coverage grows like the literature's log-k curve but from a low base (2/12 at
-pass@1), selection keeps a third to a half of the gain at k = 4, and batched width at b = 2-4
-dominates sequential retries at matched wall-clock on the Mac. If coverage does not grow, the
-paper becomes a clean negative result: a 4B agent's errors are systematic, so idle compute
-cannot be converted into solved tasks without a better model or a better specification, which
-bounds what scaffolds can do for small local agents (and redirects effort to training, G8). If
-coverage grows but selection fails, the paper quantifies the verifier bottleneck at the k a
-laptop can afford, the regime every large-k selection paper skips.
+- **Sample once, analyse offline.** Per task: r = 8 attempts for A3 (temperature 1.0), r = 4 for
+  A0, A1, A2 and A4. Store every patch with its timings and verification outcome. Unbiased pass@k
+  for k <= r from c successes (Chen et al. 2021). best@k for each selector is averaged over all
+  k-subsets of the r candidates; intervals by bootstrap over tasks (never over subsets).
+- **Selectors** S0 first candidate, S1 existing tests + import check, S2 agreement between
+  normalised diffs, S3 model-as-judge (one-line negative control). Selector code frozen and
+  hashed before scoring; developed only on the 14 calibration tasks.
+- **Tasks.** Mac-scorable public tasks. Raise n toward 100+: on the Mac the network is available
+  to install missing test dependencies (`inline_snapshot`) and run a local `httpbin`, which the
+  Kaggle sandbox could not (75/129 scorable there). Report by repository and by issue year.
+- **Timing.** l(b) per model from the decode microbenchmark (M1) and, more importantly, t(b)
+  measured end to end on real concurrent attempts through the local server. One 4xL4
+  microbenchmark inside a kernel the score agent runs anyway gives the scorer-side l(b).
+- **Scorer anchor.** e4b-k (sequential A3, k = 4, S1) once on the 14 calibration tasks on 4xL4,
+  only if quota or Modal allows. It validates sequential width on the real stack; batched width
+  cannot run inside the official harness (one `/workspace` per task; ParallelAgent with tools is
+  broken in ADK 1.36), so it is a Mac-side result, and the paper says so.
+- **Statistics.** Paired permutation test on per-task expected outcomes (continuous, more power
+  than binary sign tests); all runs logged with seeds; no selector or prompt tuning on the
+  evaluation tasks.
+- **Compute.** Mac: E4B attempt time being measured (1-2 min expected); A3 at r = 8 on 60-100
+  tasks is 8-26 Mac-hours, two to three nights; A0-A2 and A4 at r = 4 about as much again. GPU: at
+  most one anchor run (about 1 h of 4xL4) plus the microbenchmark.
 
-### Abandon criterion
+### Go/no-go gate (2026-10-24/25)
 
-Stop and switch to #3 if, on the first 12-14 tasks with r >= 4, pass@4 - pass@1 < 2 tasks
-(decided by 2026-10-25, before the lock), or if the Mac harness cannot score tasks reliably by
-2026-10-24 evening.
+1. The Mac pipeline scores the 14 calibration tasks (gold patches pass, agent patches verified).
+2. Measured end-to-end t(4)/t(1) <= 1.6 with four concurrent sessions through the local server
+   (else batched width is dropped and only sequential A2/A3 remain).
+3. At least 3 of 14 tasks have mixed outcomes at r = 4.
+
+If (3) fails because E4B sits at the floor, the main model becomes 12B and E4B a secondary point.
+If (1) fails, switch to proposal #3.
+
+### Expected result, and what a negative one shows
+
+Expected: heterogeneity on a minority of tasks; S1 keeps part of the coverage gain; batched
+width near-free on the Mac; and a clear answer to "depth, retry, width or size" at one T. Any
+ordering is a finding: if size wins, local users should run the biggest model that fits and
+ignore test-time tricks; if width wins, a laptop agent should batch 2-4 attempts; if nothing
+beats A0, the idle budget of small agents is not convertible without better models or
+specifications. The weakest outcome (no heterogeneity and no arm beats A0) is still a rigorous
+negative result with a mechanism (systematic errors), which the criteria value.
 
 ### Paper outline (3,000 words)
 
-1. Introduction: local agents run one user at a time; decode is bandwidth-bound; small agents
-   stop early; idle wall-clock is the cheapest compute there is. Contributions.
-2. Setting: the competition harness, the models, the budget; wall-clock as the unit.
-3. The cost of width on single-user hardware: l(b) curves (Mac, L4); the n(b) rule.
-4. Coverage: pass@k curves, diversity, systematic vs random failures (per-task c/r histogram).
-5. Selection at tiny k: S0-S3, efficiency, failure analysis.
-6. Matched wall-clock: resolved-at-T for sequential vs batched width; scorer anchor.
-7. Related work (TTS for SWE, verifiers, budget awareness, small models).
-8. Limitations (public repos, one model family, offline selection), reproducibility statement.
+1. Introduction: local agents serve one user; small agents stop early; the question.
+2. Setting: harness, models, wall-clock as the unit, tasks and their limits.
+3. The cost of time on one machine: l(b) and measured t(b); the allocation model (short).
+4. Heterogeneity: per-task c/r, intra-task correlation, pass@k.
+5. Arms at matched wall-clock: A0-A4; selectors at k <= 4.
+6. Scorer anchor and limitations (public repositories, one model family, offline selection).
+7. Related work (about 250 words) and reproducibility statement.
 
 ### Collision risks
 
-Scaling TTC for Agentic Coding (2604.16529, frontier model, tokens), Kozuchi (2608.15579, k = 8,
-27B, no latency), Risa (2608.22191, MoE routing), FailFast-RestartSmart (2608.03222, restarts),
-On the Clock (2610.10833, time budgets, not SWE). None prices width in wall-clock on
-single-user hardware or studies k <= 4 for a 4B model. Venue: no announced entry.
+Large Language Monkeys (2407.21787, coverage vs samples); Latency and Token-Aware TTC
+(2509.09864, latency-aware width vs depth, single-turn math, coding left as future work); Risa
+(2608.22191, n = 16 step about 2x one step, server); Inference-Time Amplification of Weak
+Reasoning Models (2605.14163, GPT-5.4 nano, 8 proposals 79.0% coverage, critic selection 76.4%
+vs 67.0% single, API tokens); Kozuchi (2608.15579, k = 8, 27B); SquidAgent (2610.08647,
+wall-clock criterion for parallelising agent layers); FailFast-RestartSmart (2608.03222). None
+compares depth, retry, width and size at matched wall-clock on single-user hardware for a small
+model. Venue: no announced entry.
 
 ## 2. Selection on noise: the winner's curse on agent leaderboards
 
