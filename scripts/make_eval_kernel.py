@@ -19,6 +19,11 @@ from pathlib import Path
 from g4agent.package import validate
 from g4agent.paths import ROOT, SUBMISSIONS
 
+# The image the official "Getting Started" notebook is pinned to: Python 3.12, which the cp312
+# wheelhouse needs (the default Kaggle image is 3.13).
+DOCKER_IMAGE = ("gcr.io/kaggle-private-byod/python@sha256:"
+                "37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461")
+
 
 def model_source(model: str) -> str:
     return f"google/gemma-4/Other/{model}/2"
@@ -70,6 +75,7 @@ def main() -> None:
         "dataset_sources": ["metric/gemma-4-developer-agent-wheelhouse"],
         "competition_sources": ["gemma-4-developer-agent"],
         "kernel_sources": [],
+        "docker_image": DOCKER_IMAGE,
         "model_sources": sorted({model_source(validate(ROOT / d)) for d in variants.values()})
         if gpu else [],
     }

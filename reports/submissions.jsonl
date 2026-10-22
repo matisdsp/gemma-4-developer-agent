@@ -1,0 +1,1 @@
+{"date": "2026-10-22T18:42Z", "ref": 57535102, "variant": "v1", "commit": "61a2f34", "kernel": "matisdespujols/g4agent-submission", "kernel_version": 1, "zip_sha256": "e4dcec1095fe20c54b00903895b6ef0bff0d3902eb501451b4bea8aff40b7853", "description": "budget-fit single agent 31B, 7 min / 28 calls, issue pinned in instruction", "status": "PENDING", "public_score": null}
