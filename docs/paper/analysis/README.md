@@ -9,6 +9,7 @@ copied here. Outputs that contain per-task, data-derived content (`graph_localiz
 | M1 decode latency vs batch | `latency/decode_latency_vs_batch.py <mlx model id> <new tokens>` | needs `mlx-lm` (0.32.2 used); results in `latency/results_mac_m4pro.md` |
 | M3 graph vs grep vs BM25 vs embeddings | `graph_localization/run_all.py` (`--force`, `--df-max X`) | extracts `*.py` from `data/snapshots` into `snap/` first (`extract_snaps.sh`); deterministic |
 | M4 best score vs submissions | `leaderboard/best_score_vs_submissions.py <csv>` | public leaderboard CSV |
+| H1-H3 heterogeneity, pass@k, paired arm comparison | `allocation/passk.py summary|compare <results.jsonl ...>` | reads the harness per-attempt records (Kaggle, Modal or Mac runners) |
 | M5 tests needing names absent from the issue | `spec_gap/spec_gap.py data/tasks.jsonl <out.json>` | heuristic, not hand-audited |
 
 M2 (E4B budget use) comes from the score agent's Kaggle run, logged in `reports/ledger.jsonl`.
