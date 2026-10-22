@@ -36,7 +36,7 @@ def log(msg):
 for k, v in {
     "TRANSFORMERS_NO_TF": "1", "TRANSFORMERS_NO_FLAX": "1", "TRANSFORMERS_OFFLINE": "1",
     "VLLM_NO_USAGE_STATS": "1", "VLLM_WORKER_MULTIPROC_METHOD": "spawn",
-    "VLLM_ENGINE_READY_TIMEOUT_S": "1200", "VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS": "1",
+    "VLLM_ENGINE_READY_TIMEOUT_S": "3600", "VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS": "1",
     "NCCL_DEBUG": "WARN", "LITELLM_LOCAL_MODEL_COST_MAP": "True", "LITELLM_TELEMETRY": "False",
     "LITELLM_LOG": "WARNING", "OPENAI_API_KEY": "EMPTY", "LOCAL_API_KEY": "EMPTY",
     "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True", "OTEL_SDK_DISABLED": "true",
@@ -158,6 +158,16 @@ def start_vllm(agent_dir):
     if not paths:
         raise SystemExit(f"weights for {model} not attached")
     model_path = Path(paths[0]).parent
+    # The first read of the weights from /kaggle/input can be very slow (a first run timed out
+    # at "Loading safetensors 0/1" after 20 min). Stream them once, logging throughput.
+    t = time.time()
+    total = 0
+    for f in sorted(model_path.rglob("*")):
+        if f.is_file():
+            with open(f, "rb") as fh:
+                while chunk := fh.read(64 << 20):
+                    total += len(chunk)
+            log(f"read {f.name}: {total / 2**30:.1f} GiB in {time.time() - t:.0f}s")
     adapters = discover_adapters(str(agent_dir), adapter_extensions=ALLOWED_ADAPTER_EXTENSIONS)
     amap = getattr(adapters, "adapters", None) or {}
     ranks = [r for i in amap.values() if (r := getattr(i, "rank", None))]
@@ -170,7 +180,7 @@ def start_vllm(agent_dir):
         gpu_memory_utilization=0.90, enable_auto_tool_choice=True, enable_lora=bool(amap),
         max_loras=max(1, len(amap)), max_lora_rank=max(ranks) if ranks else 128,
         scheduler_reserve_full_isl=False, tensor_parallel_size=min(4, max(1, torch.cuda.device_count())),
-        startup_timeout=60 * 20, extra_args=extra.get(model, ()),
+        startup_timeout=60 * 60, extra_args=extra.get(model, ()),
     )
     server = VllmServer(cfg, adapter_manifest=adapters)
     server.start()
