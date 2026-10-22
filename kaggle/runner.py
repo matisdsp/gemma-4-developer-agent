@@ -220,7 +220,8 @@ def decode_bench():
         wall = time.time() - t
         toks = res[0][1]
         rows.append({"concurrent": n, "wall_s": round(wall, 2), "tokens_each": toks,
-                     "ms_per_step": round(1000 * max(r[0] for r in res) / max(1, toks), 1)})
+                     "ms_per_step": round(1000 * max(r[0] for r in res) / max(1, toks), 1),
+                     "raw": [[round(r[0], 3), r[1]] for r in res]})
         log(f"decode bench {rows[-1]}")
     (OUT / "decode_bench.json").write_text(json.dumps(rows, indent=2))
 
