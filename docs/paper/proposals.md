@@ -67,8 +67,8 @@ same wall-clock.
   pass@1 reference, not a temperature-1.0 sample.
 - **A1 depth**: one attempt with a mandatory reproduce-then-verify step before `submit_patch`
   (the score agent's `variants/e4b-v2`: a /tmp/repro.py that must fail before and pass after the
-  edit, the nearest existing test file run before submitting, a 36-call plan, thinking 4096) (in the calibration run, 4 of 10 E4B
-  failures ran no test or snippet at all and both successes did; HANDOFF, trace reading).
+  edit, the nearest existing test file run before submitting, a 36-call plan, thinking 4096). Motivation: in the calibration run, 4 of 10 E4B
+  failures ran no test or snippet at all and both successes did (trace reading).
 - **A2 informed retry**: sequential attempts; each new attempt starts from a clean tree and sees
   the previous diff and its test output (cf. FailFast-RestartSmart 2608.03222, +5.2 points with
   the overlay vs +0.2 for a cold restart; SWE-Residual 2610.25899 warns of the opposite effect).

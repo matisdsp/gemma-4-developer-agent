@@ -17,6 +17,9 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   3, ms per decode step): E2B 9.0 / 9.0 / 11.6 / 20.3 / 32.8 and E4B 14.9 / 16.0 / 22.0 / 37.9 /
   61.3 at batch 1 / 2 / 4 / 8 / 16. A second concurrent sample costs 0-7% more wall-clock per
   step, a fourth 28-47%.
+  On one L4 GPU (vLLM TP1, E4B, official image, Modal, 256-token completions, score agent's
+  microbenchmark): 16.7 / 16.9 / 17.1 / 18.2 ms per step at 1 / 2 / 4 / 8 concurrent requests,
+  i.e. eight concurrent samples cost 9% more per step than one (slowest request per level kept).
 - **M2, E4B leaves most of its budget idle** (official harness on Kaggle 4xL4, vLLM as the scorer,
   12 calibration tasks, run by the score agent on 2026-10-22): 2/12 resolved; E4B calls
   `submit_patch` after a mean 8.2 tool calls and 66 s of agent time out of a 36-call / 420 s
