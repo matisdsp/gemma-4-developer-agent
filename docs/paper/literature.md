@@ -641,6 +641,42 @@ noise, or the issue-to-test interface gap.
 - **Admitted limitations / future work**: not extracted; requires a vision-capable backbone.
 - **Relevance**: Rule-based, non-LLM compaction avoids the latency that cancelled the gain of LLM summarisation under a time cap; vision-input assumption must hold for the local model.
 
+### 2.11. Additions after the devil's-advocate review (2026-10-22)
+
+#### Large Language Monkeys: Scaling Inference Compute with Repeated Sampling
+- **Ref**: Brown, Juravsky, Ehrlich, Clark, Le, Re, Mirhoseini, arXiv 2407.21787, Jul 2024 (v3 Dec 2024), https://arxiv.org/abs/2407.21787
+- **Contribution**: Coverage (pass@k) grows roughly log-linearly with the number of repeated samples across tasks and models; gains transfer where answers can be verified automatically.
+- **Numbers**: SWE-bench Lite with DeepSeek-Coder-V2-Instruct: 15.9% at k=1 to 56% at k=250 (single-sample SOTA then 43%).
+- **Admitted limitations / future work**: without automatic verifiers, majority voting and reward models plateau after a few hundred samples.
+- **Relevance**: The canonical coverage result; any width study must start from it. It counts samples, not wall-clock.
+
+#### Compute-optimal TTS: Scaling LLM Test-Time Compute Optimally can be More Effective than Scaling Model Parameters
+- **Ref**: Snell, Lee, Xu, Kumar, arXiv 2408.03314, Aug 2024, https://arxiv.org/abs/2408.03314
+- **Contribution**: Allocates test-time compute per prompt by difficulty (search against PRMs, revisions); FLOPs-matched comparison with larger models.
+- **Numbers**: more than 4x efficiency over best-of-N; a smaller model with test-time compute beats a 14x larger one on prompts where it has some success.
+- **Admitted limitations / future work**: math reasoning; cost in FLOPs.
+- **Relevance**: The "small model + more compute vs bigger model" question at matched cost, here in FLOPs; our setting needs it at matched wall-clock on one machine.
+
+#### Latency-aware TTC: Latency and Token-Aware Test-Time Compute
+- **Ref**: Huang, Damani, El-Kurdi, Astudillo, Sun, arXiv 2509.09864, Sep 2025, https://arxiv.org/abs/2509.09864 (HTML read)
+- **Contribution**: Per-query choice among best-of-N, majority voting and beam search with a cost that includes wall-clock latency (generation + PRM scoring) and tokens.
+- **Numbers**: one A100 80GB, Qwen2.5-1.5B generator, Qwen2.5-Math-PRM-7B; batch size set equal to the candidate count so "latency grows only modestly with N" (asserted, no latency-vs-N curve); adaptive strategy near 0.50 accuracy at about 40 s on NuminaMath-CoT.
+- **Admitted limitations / future work**: per-strategy average costs stand in for per-query costs; one GPU; math only, coding and dialogue left to future work.
+- **Relevance**: The closest prior work on latency-aware width vs depth, single-turn math. Coding agents with tool calls and a wall-clock cap are explicitly future work there.
+
+#### Risa wall-clock note (Appendix I.1 of 2608.22191)
+- **Ref**: Chen, Nian, Cao, Jiang, arXiv 2608.22191, Aug 2026, Appendix I.1 (HTML read)
+- **Numbers**: "the realized wall-clock latency on the same hardware for an n=16 step is about 2x that of a single-sample step"; prefix-cache hit rate 98.9%; gpt-oss served with vLLM 0.15.1.
+- **Relevance**: The only SWE-agent paper found that states the near-free cost of batched width, as a side remark on server hardware. It does not study allocation under a wall-clock budget.
+
+#### The Leaderboard Illusion
+- **Ref**: Singh et al., arXiv 2504.20879, Apr 2025, https://arxiv.org/abs/2504.20879
+- **Contribution**: Selective disclosure of the best of many private variants biases Chatbot Arena rankings (27 private Llama-4 variants tested by one provider).
+- **Relevance**: The best-of-N selection effect for human-preference leaderboards; the agent-leaderboard analogue (proposal #2) is unmeasured.
+
+#### Earlier leaderboard-overfitting work (not re-opened)
+- Blum and Hardt, "The Ladder: A Reliable Leaderboard for Machine Learning Competitions", ICML 2015 (arXiv 1502.04585); Roelofs et al., "A Meta-Analysis of Overfitting in Machine Learning", NeurIPS 2019 (Kaggle competitions show little adaptive overfitting). Both concern deterministic models on a fixed holdout; agent leaderboards add run-to-run noise in the submission itself.
+
 ## 3. Training SWE agents and small open models
 
 ### 3.1. LoRA-specific results for code agents and agentic RL
