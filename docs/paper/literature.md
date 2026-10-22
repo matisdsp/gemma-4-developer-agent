@@ -371,3 +371,403 @@ Setting of interest: Kaggle competition, ~120 hidden tasks from private repos, s
 - OpenAI, "Why we no longer evaluate SWE-bench Verified" (23 Feb 2026): primary page returned HTTP 403 to me; via the-decoder.com article (read): at least 59.4% of an audited subset (27.6% of tasks that models often failed, per a search summary) have flawed tests rejecting correct solutions; GPT-5.2, Claude Opus 4.5 and Gemini 3 Flash Preview could reproduce some original fixes from memory; recommended SWE-bench Pro and is building non-public tests. 2610.22760 says OpenAI later withdrew the Pro recommendation (citing "OpenAI 2026b") after finding underspecified prompts and overly restrictive tests in Pro; I did not open that primary source.
 - J. Gabor (LessWrong/Substack), "SWE-Bench Pro is even worse": audit of 100 random Pro tasks, categories: test leniency, overly strict tests (e.g. flipt tests expecting buggy behaviour), requirements inflation; the percentage was only in a chart I could not read. A commenter claims 15-24% of the full Pro set unsolvable; unverified.
 
+
+## 6. Context management and compute budgets
+
+
+Literature notes compiled 2026-10-22. Every fiche below was written from a source actually opened (arXiv HTML/PDF full text or a blog page). Numbers are quoted from the papers' own tables/text. "Setting" = Google ADK agent, Gemma 4 31B / 4B, 32k context, ADK events compaction (LLM summary of everything except last ~5 events when prompt >= 14,336 tokens; summarizer sees only text parts, so tool outputs/diffs are dropped), overflow kills the session, ~6 min / ~30 tool calls per task, thinking on, ~30 tok/s.
+
+### 1. Compaction strategies: masking vs summarization (SWE agents)
+
+#### Complexity Trap: The Complexity Trap: Simple Observation Masking Is as Efficient as LLM Summarization for Agent Context Management
+- **Ref**: Lindenbauer et al. (JetBrains Research / TU Munich), arXiv 2508.21433 (NeurIPS 2025 DL4Code), Aug 2025 (v3 Oct 2025), https://arxiv.org/abs/2508.21433
+- **Contribution**: Controlled comparison inside SWE-agent on SWE-bench Verified (500 tasks, turn limit 250) of (a) raw agent, (b) observation masking (observations older than the last M=10 turns replaced by a placeholder, reasoning/actions kept), (c) LLM-Summary (OpenHands-style prompt, summarise N=21 turns, keep M=10 raw). Also a hybrid (masking + summary).
+- **Numbers**: Qwen3-Coder 480B: raw 53.4% / $1.29; masking 54.8% / $0.61 (-52.7%); LLM-Summary 53.8% / $0.64 (-50.4%). Gemini 2.5 Flash: raw 32.8% / $0.41; masking 35.6% / $0.18; summary 36.0% / $0.24. Gemini 2.5 Flash (thinking): raw 40.4%, masking 36.4% (-9.9%), summary 31.4% (-22.3% relative to raw). Qwen3-32B (thinking, 122k YaRN window): raw 23.0, masking 24.6, summary 24.8, cost no better with summary (the only config where summary was not worse in cost-efficiency). "Trajectory elongation": summary makes trajectories longer (Gemini 2.5 Flash: 52 turns vs 44 masking vs 50 raw; Qwen3-Coder +15% vs raw), i.e. summaries hide failure signals and the agent keeps going. Summary calls are up to 7.2% of instance cost and defeat KV/prefix caching. Hybrid (N=21, M=W=10 re-used naively) actually degraded efficiency; tuned hybrid: -7% vs masking, -11% vs summary.
+- **Admitted limitations / future work**: Sec. 6: (1) only SWE domain with very verbose tool outputs, which "naturally favors" masking; (2) heuristic fixed triggers (rolling window agnostic to staleness, e.g. keeps a file view after it was edited; summary on fixed turn schedule); (3) only initial evidence on other scaffolds (OpenHands).
+- **Relevance**: Closest published ablation to the ADK compaction policy, but all models are large (>=32B) with 100k+ windows (no run under 32k, no wall-clock cap), and the summarizer there sees the observations (ADK's does not). Masking keeps the action/reasoning chain; ADK's summary replaces everything.
+
+#### ACON: ACON: Optimizing Context Compression for Long-horizon LLM Agents
+- **Ref**: Kang et al. (KAIST, Microsoft, Cambridge), arXiv 2510.00615 (ICLR 2026), Oct 2025, https://arxiv.org/abs/2510.00615
+- **Contribution**: Learns the *compression guideline* in natural language: finds tasks where full context succeeds but compressed context fails, has an LLM analyse the failure and rewrite the guideline (utility step), then a cost-minimising step; compressor can be distilled into small models (LoRA). Compresses both observations and histories.
+- **Numbers**: AppWorld/OfficeBench/Multi-objective QA with gpt-4.1: peak tokens -26% to -54% with accuracy preserved; on AppWorld history compression "reduces peak tokens by over 25% while preserving the accuracy of the no-compression upper bound" whereas baseline compressors "suffer severe degradation on medium and hard tasks spanning longer steps". Distilled compressors (Qwen3-14B, Qwen3-8B, Phi-4) keep >95% of the gpt-4.1 teacher. Small *agents* gain up to 46% (Qwen3-14B agent on AppWorld 26.8% -> 33.9%) "by mitigating context distraction".
+- **Admitted limitations / future work**: App. A / Limitations: evaluation mostly on GPT models (no Gemini/Claude/large open-weight models, GPU limits); compression adds compute and latency; no SWE benchmark.
+- **Relevance**: Direct evidence that naive prompting-based compression loses task-critical state on long tasks and that a failure-driven guideline fixes it; also first evidence that small agents (<=14B) benefit from compression. No coding tasks, so transfer to diffs/tool outputs is untested.
+
+#### Context-Folding: Scaling Long-Horizon LLM Agent via Context-Folding (FoldAgent)
+- **Ref**: Sun et al. (ByteDance Seed, CMU, Stanford), arXiv 2510.11967 (ICML 2026 as "Scaling Long-Horizon Agent via Context Folding"), Oct 2025, https://arxiv.org/abs/2510.11967
+- **Contribution**: Agent gets two actions, `branch` (open a sub-trajectory for a sub-task) and `return` (fold the whole branch into a short result); trained with FoldGRPO (process rewards: unfolded-token penalty, out-of-scope penalty). Active context stays small; compared against ReAct at 32K/327K and a Summary Agent with 32,768 max context and 10 summary sessions.
+- **Numbers** (Seed-OSS-36B, SWE-bench Verified N=500, pass@1): ReAct 327K 55.2%; ReAct **32K without management 43.6% (-11.6)**; Summary Agent (32K x 10) 48.8% untrained, 55.0% after GRPO; Folding Agent 49.2% untrained, 58.0% after FoldGRPO. BrowseComp-Plus: ReAct 32K 28.6%, ReAct 327K 47.8%, Summary 38.6%, Folding 42.0% untrained / 62.0% FoldGRPO. Tool calls: summary agent 77.0 vs ReAct-32K 25.8 on SWE (agent keeps working after compaction). Claims active context ~10x smaller.
+- **Admitted limitations / future work**: Sec. 6: multi-layer (hierarchical) folding is future work; only two long-horizon tasks; gains rooted in RL training rather than in the mechanism alone (untrained folding is only +0.4 pt over untrained summary on SWE).
+- **Relevance**: Only paper found that evaluates a 32k cap on SWE-bench: truncating at 32k costs ~12 pts, summary recovers ~5 of them untrained. A 36B model, not a Gemma 4B/31B, and it still uses 10 sessions of 32k (up to 327k total tokens), unlike a single 6-minute budget.
+
+### 2. Budget awareness and overthinking
+
+#### BATS: Budget-Aware Tool-Use Enables Effective Agent Scaling
+- **Ref**: Liu et al. (UCSB, Google Cloud AI Research, Google DeepMind, NYU), arXiv 2511.17006, Nov 2025, https://arxiv.org/abs/2511.17006
+- **Contribution**: Shows that giving a search agent a larger tool-call budget does not help because it lacks budget awareness; proposes a "Budget Tracker" (a prompt-level plug-in that tells the agent remaining tool calls) and BATS (budget-aware planning + verification), plus a unified token+tool cost metric.
+- **Numbers**: Budget Tracker gives consistent gains over ReAct at the same budget: Gemini-2.5-Pro BrowseComp 12.6 -> 14.6, BrowseComp-ZH 31.5 -> 32.9, HLE-Search 20.5 -> 21.8; Gemini-2.5-Flash 9.7 -> 10.7 / 26.5 -> 28.7 / 14.7 -> 17.3; Claude-Sonnet-4 12.2 -> 14.0 / 29.1 -> 31.1 / 20.5 -> 23.0 (3 runs, SDs ~0.5-2). Budget 10 + tracker: 12.8% (6.8 cents) vs ReAct budget 100: 12.6% (9.9 cents). Full BATS (budget 100): 24.6% BrowseComp, 46.0% BrowseComp-ZH, 27.0% HLE-Search with Gemini-2.5-Pro; removing verification drops 18.7 -> 15.4 on BrowseComp.
+- **Admitted limitations / future work**: App. G: only tool-call budgets studied; "a more realistic scenario involves managing multiple resource constraints jointly: token limits, inference latency and tool-call budgets"; no study of how an agent should allocate a budget; cost of repeated runs.
+- **Relevance**: Direct template for telling the ADK agent "N of ~30 calls left"; but web-search domain, frontier models, no wall-clock, no coding, no small models. Explicitly leaves latency/token budgets open.
+
+#### Overthinking: The Danger of Overthinking: Examining the Reasoning-Action Dilemma in Agentic Tasks
+- **Ref**: Cuadron et al. (UC Berkeley, ETH, UIUC, CMU), arXiv 2502.08235 (ICML 2025), Feb 2025, https://arxiv.org/abs/2502.08235
+- **Contribution**: Defines overthinking in agentic loops (analysis paralysis, rogue actions, premature disengagement), scores 4,018 SWE-bench Verified trajectories (OpenHands) with an LLM judge validated against human experts, and ties it to resolve rate.
+- **Numbers**: Higher overthinking score <-> lower resolve rate across 19 models (regression on reasoning models beta1 = -7.894, R2 0.892; non-reasoning beta1 = -15.938, R2 0.839). Mean score reasoning 3.505 +/- 1.774 vs non-reasoning 2.228 +/- 0.751. Smaller models (32B/14B/7B of Qwen2.5-Instruct and R1-Distill-Qwen) overthink more as size decreases, and the reasoning/non-reasoning gap closes at small sizes. Abstract claims "almost 30%" gain at -43% cost; body: k=2 low-effort o1 samples, keep the one with lower overthinking = 27.3% resolved (about $800), "nearly matches" o1-high at 43% lower cost; k=3 gives 30.3%. o1-low overthinks 35% more than o1-high.
+- **Admitted limitations / future work**: Judge-based metric (they report correlation with human experts); SWE-bench Verified/OpenHands only; native function calling and selective RL suggested as mitigations (Sec. 6-7).
+- **Relevance**: Thinking-on small Gemma at 30 tok/s is exactly the regime where this predicts "think instead of act"; each thinking token costs wall-clock (6 min = ~10.8k generated tokens in total at 30 tok/s). Their cost axis is dollars, not time.
+
+#### OpenHands-Condenser: OpenHands Context Condensation for More Efficient AI Agents (blog) + Software Agent SDK
+- **Ref**: C. Smith (All Hands AI), blog, Apr 9 2025, https://openhands.dev/blog/openhands-context-condensensation-for-more-efficient-ai-agents ; Wang et al., "The OpenHands Software Agent SDK", arXiv 2511.03690, Nov 2025, Sec. 4.6
+- **Contribution**: LLMSummarizingCondenser: once history reaches a size threshold, older events are replaced by an LLM summary (user goals, progress, what remains; for code "critical files and failing tests") while recent events stay intact; the full event log is kept, condensation is a stored event. SDK (2026 refactor) is the design ADK compaction closely resembles.
+- **Numbers**: Blog: "up to 2x" per-turn API cost reduction (settles under half the baseline cost); on "a subset of SWE-bench Verified" it solves 54% vs 53% baseline; subset size, model, runs, variance and thresholds are not given. SDK paper repeats "reduce API costs by up to 2x with no degradation" citing the blog (no new measurement).
+- **Admitted limitations / future work**: Blog: only trade-off is more turns ("the agent occasionally needs a turn to condense"); linear-cost claim holds "when events are of similar size" and is not measured. SDK Sec. 7 Limitations covers security/multi-agent only; nothing on compaction accuracy.
+- **Relevance**: The production precedent for the ADK policy, but its only evidence is an unreplicated blog claim at large context; the independent test (Complexity Trap) found summary ~ masking on success and worse on cost; and 2605.18854 (below) finds LLM condensers cost +24-94%.
+
+#### MemCondense: Evaluating Memory Condensation Strategies for Coding Agents in Data-Driven Scientific Discovery
+- **Ref**: Chintalapati et al. (PNNL), arXiv 2605.18854, May 2026, https://arxiv.org/abs/2605.18854
+- **Contribution**: Compares eight OpenHands condensers (NoOp, RecentEvents, AmortizedForgetting, ObservationMasking, ConversationWindow [reactive: fires only on context-overflow error], LLMSummarizing, StructuredSummary [18 fixed fields], LLMAttention) on 60 DiscoveryBench tasks x 8 = 480 runs with GPT-4o (GPT-5-mini condensing), 50-iteration cap, thresholds calibrated to the NoOp mean of 9 events (max_size=8, keep_first=2).
+- **Numbers**: No condenser changes hypothesis quality significantly (0.559-0.637). LLM condensers increase total token cost by 24-94%; ObservationMasking is the only net saver (-8.6%; -52% on verbose sociology tasks, nothing on compact tasks). All heuristic condensers keep 100% task completion; LLM-based ones only 93-98% (i.e. summarization itself causes failed runs). Only tasks >10 events give positive savings (17-34%) for heuristics; short tasks get costlier under every strategy.
+- **Admitted limitations / future work**: Sec. 6: one backbone (GPT-4o), "condensation effectiveness may differ for models with smaller context windows or weaker instruction-following"; tasks only 5-22 events; static per-run condenser choice (adaptive meta-condensers suggested).
+- **Relevance**: 2026 confirmation (different domain, same OpenHands condenser family) that LLM summarization buys no quality and risks completion; explicitly flags small-window / weak models as untested, which is the Gemma-4B/32k gap.
+
+#### SWE-Effi: SWE-Effi: Re-Evaluating Software AI Agent System Effectiveness Under Resource Constraints
+- **Ref**: Fan et al. (Huawei, CUHK-SZ, KCL, Queen's), arXiv 2509.09853, Sep 2025, https://arxiv.org/abs/2509.09853
+- **Contribution**: Resolve-rate metrics weighted by resource: AUC of cumulative-resolved vs tokens / (normalised) inference time / CPU time ("effectiveness under token budget", EuTB; under time budget). Five scaffolds (AutoCodeRover, OpenHands, SWE-agent, Agentless, Agentless-Mini) x three LLMs (GPT-4o-mini, Llama-3.3-70B, Qwen3-32B) on a SWE-bench subset.
+- **Numbers**: Scaffold effectiveness is model-dependent: SWE-agent + Qwen3-32B 28% resolved (35.5 API calls, 440k input tokens) vs 10% with GPT-4o-mini; SWE-agent EuTB 21.8% (Qwen3-32B) vs 5.1% (GPT-4o-mini). "Token snowball": input tokens grow superlinearly with LLM calls. "Expensive failures": for SWE-agent + GPT-4o-mini an unresolved attempt uses >4x the resources of a resolved one (Table 3: 8,867k vs 1,865k tokens, 658 s vs 167 s total time, 192 vs 82 LLM requests). Clear trade-off between effectiveness under token budget and under time budget.
+- **Admitted limitations / future work**: Sec. 5.3-6: suggests scaffolds stop when the snowball gets too large and "better memory abstraction" mitigates it; future work = progress-aware agents that detect stagnation and abort/redirect; subset-only evaluation; no thinking models, no <=32k setting.
+- **Relevance**: Closest published thing to a time-budgeted SWE evaluation; shows failures dominate cost, which argues for budget-aware early stopping inside a 6-minute cap. Time is measured as wall-clock of hosted runs, not fixed per-task cap.
+
+### 3. Learned memory and folding
+
+#### MEM1: MEM1: Learning to Synergize Memory and Reasoning for Efficient Long-Horizon Agents
+- **Ref**: Zhou et al. (SMART/NUS, MIT, Yonsei), arXiv 2506.15841 (NeurIPS 2025 workshop; ICLR 2026 poster), Jun 2025, https://arxiv.org/abs/2506.15841
+- **Contribution**: RL (PPO-style with masked trajectories) trains a 7B agent to keep a constant-size "internal state" that is rewritten each turn and replaces all prior turns.
+- **Numbers**: MEM1-7B vs Qwen2.5-14B-Instruct on 16-objective multi-hop QA: 3.5x better performance, 3.7x lower memory; at 16 objectives, 1.27x lower peak memory and 1.78x faster inference than the best non-collapsed baseline. Trained on 2-objective compositions, generalises to 16 objectives.
+- **Admitted limitations / future work**: Sec. 5: assumes environments with well-defined verifiable rewards; open-ended/noisy-reward tasks left for future work. Tasks are QA/web shopping, not code.
+- **Relevance**: A 7B model *trained* to compact; an untrained Gemma 4B/31B does not have this skill, so the summarizer-in-the-loop is the only option available here.
+
+#### AgentFold: AgentFold: Long-Horizon Web Agents with Proactive Context Management (Folding)
+- **Ref**: Ye et al. (Tongyi Lab, Alibaba), arXiv 2510.24699 (ICLR 2026), Oct 2025, https://arxiv.org/abs/2510.24699
+- **Contribution**: Every step the agent emits a "folding" directive: granular condensation of the latest step or deep consolidation of a multi-step span, producing multi-scale state summaries; trained with SFT only.
+- **Numbers**: AgentFold-30B-A3B 36.2% BrowseComp / 47.3% BrowseComp-ZH; context ~7k tokens after 100 turns, scales to 500 turns; on average 84k tokens (92%) smaller than ReAct (~7 GB memory saving per instance); context mostly <20k and non-monotonic (can undo dead ends).
+- **Admitted limitations / future work**: Argues that step-wise full-history summarisation "risk[s] the premature and irreversible loss of crucial details"; extreme-turn scaling deferred "due to time constraints"; web-search only.
+- **Relevance**: Evidence for lossless-first, selective compaction (keep recent step verbatim) vs the ADK approach of summarising nearly all at once. A 30B-A3B model can be a good fit for 32k only if trained for it.
+
+### 4. 2026 evidence closest to the setting (tight windows, small models, time caps)
+
+#### Bud-ContextCompact: Bud ContextCompact 2.0: Context Compaction for Agent Success and Accuracy with Small Language Models and Constrained Context Windows
+- **Ref**: VG & PS (Bud), arXiv 2610.25516, 18 Oct 2026, https://arxiv.org/abs/2610.25516
+- **Contribution**: A/B evaluation of compaction alone (everything else fixed) inside the Bud agent runtime: (a) recall questions over recorded agent sessions with 1.2B and 9B models, (b) 100 SWE-bench Verified tasks end to end with a 27B reasoning model on a 49K-token window (556 graded sessions), with threshold, wall-clock and 8B-model sub-studies. Summaries are checked for "critical-literal recall" before being applied.
+- **Numbers**: Recall (16K budget): 1.2B model 0.335 compacted vs 0.247 truncated vs 0.176 with its full 32K history (p<0.001); 9B (32K budget) 0.577 vs 0.515 truncated (p=0.04). SWE-bench, 27B, 49K: long sessions 41% -> 53% resolved (+12.3 pp, 95% CI +1.6..+23.0, McNemar p=0.043), short sessions +1.7 pp (p=1.0); equal total tokens, 13% fewer tokens per solved task, +14% model time (compacted arm kept working on tasks the uncompacted arm abandoned when its window ran out). **Mechanism**: the dominant failure without compaction was "a reasoning turn exhausting the space the history left", not the history overflowing. **Wall-clock**: with 60 turns or 45 minutes per session the gain vanished (63/120 off vs 59/120 auto, -3.3 pp, p=0.48) because each summary took a median 161 s (p90 263 s) since the summariser is the agent's own reasoning model; auto sessions hit the 45-min limit 51 vs 39 times. **Threshold**: compaction at 24K threshold +13.9 pp on long pairs; at 48K it ran in only 4 of 50 sessions (no effect); default 0.8*B was between; "for reasoning models in tight windows a threshold around half the input budget worked". An 8B model on the same tasks submitted after ~10 turns at 5-8K tokens and never needed compaction. 134 applied compactions: mean critical-literal recall 1.000, each 24.7K -> 11.4K tokens with a 2.3K-token briefing.
+- **Admitted limitations / future work**: Sec. 4.1 caveats: small-model results are single runs on 239 probes; harness layout changes moved all arms (full arm 0.63 -> 0.59). Sec. 6: summariser should be cheaper than the agent (reasoning off, smaller writer, or extractive fold) but "We did not measure these on agentic tasks"; accuracy transfers across hardware but time cost scales with hardware.
+- **Relevance**: Nearest published match to the setting (small window, reasoning model, summary-based compaction, time cap) and it shows a null/negative result under a time budget when the summariser is slow; industry preprint, not peer-reviewed, 27B on 49K rather than 31B on 32k. Fires early (24K) works better than late, vs ADK's 14,336 of 32k (~44%), which is in the "early enough" regime.
+
+#### AutoCompact: AutoCompact: Learning When to Compact Context in Long-Horizon Coding Agents
+- **Ref**: Zhang et al., arXiv 2610.02163, 1 Oct 2026, https://arxiv.org/abs/2610.02163
+- **Contribution**: Trains Qwen3-Coder-30B-A3B to call a `compact()` tool proactively (SFT on judge-corrected trajectories, then RL), compared with length-triggered compaction and other 2026 learned methods; evaluated on SWE-bench Verified and SWE-PolyBench Verified, at 256K and at a forced 16K window.
+- **Numbers** (pass rate %, SWE-bench Verified / SWE-PolyBench Verified, avg of 3 runs): Full-history 256K baseline 30.4 / 19.5; **fixed length-triggered compaction at 16K 28.8 / 18.6** (i.e. -1.6 / -0.9 vs no compaction); CompactionRL (16K) 32.7 / 19.8; SelfCompact (rubric) 31.7 / 20.6; SWE-Compressor 31.0 / 20.1; AutoCompact-SFT 32.2 / 21.7; AutoCompact 39.6 / 24.5. Ignoring the same trained model's compaction calls lowers pass rate.
+- **Admitted limitations / future work**: Sec. 5: RL used 32K-token sequences vs 256K eval; single scaffold; Codex and Claude Code use length-triggered auto-compaction and learned proactive triggers could be combined with them.
+- **Relevance**: Independent numbers saying length-triggered compaction (the ADK policy) is neutral-to-negative for a 30B coder, while the *timing and content* of compaction are where gains come from. Their summarizer is the agent itself and sees tool outputs.
+
+#### CompactionRL: CompactionRL: Reinforcement Learning with Context Compaction for Long-Horizon Agents
+- **Ref**: Li et al. (Tsinghua / Z.AI), arXiv 2607.05378 (v2 1 Oct 2026), https://arxiv.org/abs/2607.05378
+- **Contribution**: RL that jointly optimises task actions and summary actions across compaction boundaries (cross-segment GAE); GLM-4.5-Air 106B-A12B and GLM-4.7-Flash 30B-A3B.
+- **Numbers**: GLM-4.5-Air 66.4% SWE-bench Verified (+6.6 over base with inference-time compaction), 26.2% Terminal-Bench 2.0 (+4.9). GLM-4.7-Flash 56.0% (+5.5), 20.2% TB 2.0 (+6.7). **Summariser quality** (Table 1): same execution agent GLM-4.7-Flash, only the summary agent varied: Qwen3.5-27B summaries 55.5% (1.010 summaries/trace), GLM-4.7-Flash itself 50.5% (1.075), Qwen3-30B-A3B 49.0% (1.126): a 6.5-pt swing from the summarizer alone. RL-trained summaries grow longer and more detailed (retaining paths, errors, failed commands).
+- **Admitted limitations / future work**: gains do not consistently transfer to single-window inference; cross-segment GAE is an approximation.
+- **Relevance**: Direct evidence that compaction outcome depends on summariser quality and on what it keeps (paths, error messages, failed commands, partial solutions); the ADK summarizer sees none of the tool outputs or diffs.
+
+#### SWE-MeM: SWE-MeM: Learning Adaptive Memory Management for Long-Horizon Coding Agents
+- **Ref**: Gao et al. (CUHK), arXiv 2606.28434, 26 Jun 2026, https://arxiv.org/abs/2606.28434
+- **Contribution**: Memory tool the agent calls to decide when/what/how to compress given remaining budget; SFT + Memory-aware GRPO; OpenHands scaffold with a 32,768-token limit for data collection, SFT, RL and eval; models Qwen3-4B-Instruct-2507 and Qwen3-Coder-30B-A3B.
+- **Numbers** (SWE-bench Verified resolve %): Qwen3-4B ReAct 7.0 (128k) / **5.2 (32k)**; SWE-MeM SFT 41.6, SFT+RL 43.4 (32k) (cf. SWE-Master-4B 33.4 at 128k). Qwen3-Coder-30B-A3B ReAct 51.6 (256k) / **38.6 (32k)**; SWE-MeM workflow-only (untrained, with a proprietary LLM making compression decisions) 58.4; SFT 58.8; SFT+RL 60.2 at 32k, with 94.7% of the base ReAct token use but 123.5% of its steps. Baselines at same table: threshold-compression summary agent 53.8 (32B, 64k, 204% tokens) / 55.0 (Seed-OSS-36B, 32k); Context Folding 58.0; SWE-Compressor 57.8.
+- **Admitted limitations / future work**: No dedicated limitations section found in the text I extracted; trajectory synthesis relies on GPT-5.1; evaluated only on SWE-bench Verified at one window size.
+- **Relevance**: The only SWE-bench numbers for a 4B-class model at 32k: untrained it is almost zero (5.2%), 32k costs the 30B model 13 points (51.6 -> 38.6) before any compaction; gains here come from trained policies, not from off-the-shelf summarisers.
+
+#### CAT/SWE-Compressor: Context as a Tool: Context Management for Long-Horizon SWE-Agents
+- **Ref**: Liu et al., arXiv 2512.22087, Dec 2025, https://arxiv.org/abs/2512.22087
+- **Contribution**: CAT: context maintenance is a callable tool over a structured workspace (stable task semantics + condensed long-term memory + high-fidelity short-term interactions); SWE-Compressor (Qwen2.5-Coder-32B) trained with offline trajectory retrofitting.
+- **Numbers**: SWE-bench Verified: ReAct agent 49.8, threshold-compression summary agent 53.8 (uses 204% of base-model tokens in SWE-MeM's accounting), SWE-Compressor 57.6.
+- **Admitted limitations / future work**: Claims append-only and passively triggered compression cause "context explosion, semantic drift, and degraded reasoning"; no limitations section extracted; 64k window.
+- **Relevance**: Establishes the "high-fidelity short-term + condensed long-term" structure; ADK keeps only the last ~5 events at full fidelity.
+
+#### SWE-Pruner: SWE-Pruner: Self-Adaptive Context Pruning for Coding Agents
+- **Ref**: Wang et al., arXiv 2601.16746 (v4 May 2026), https://arxiv.org/abs/2601.16746
+- **Contribution**: A 0.6B "neural skimmer" prunes file reads line by line, guided by an agent-written goal hint, at the tool-output boundary rather than the history.
+- **Numbers**: Read operations account for 76.1% of token cost (Mini-SWE-Agent, Claude Sonnet 4.5, SWE-bench Verified). 23-38% token reduction on SWE-bench Verified with success +1.2 to +1.4 pp (GLM-4.6: 55.4 -> 56.6; Sonnet 4.5 -39% tokens); up to -26% rounds; up to 14.84x compression on single-turn LongCodeQA.
+- **Admitted limitations / future work**: Python only; possible training-data leakage controls; skimmer adds marginal latency.
+- **Relevance**: Where the tokens are (file reads) and a cheap way to shrink them before compaction is needed; irrelevant if the session is time-limited by decode, not prefill.
+
+#### Harness-Design: An Empirical Study of Harness Design for Coding Agents
+- **Ref**: Fan et al., arXiv 2609.20804, Sep 2026, https://arxiv.org/abs/2609.20804
+- **Contribution**: Fixed-loop lightweight harness; 176 matched settings across 4 models (Nemotron-3 30B/120B/550B, Mistral-Medium-3.5-128B), SWE-bench Verified + Terminal-Bench 2.1, five context-management tiers at 32k/64k/96k/128k budgets: T0 none (terminates on overflow), T1 elide stale tool observations, T2 elision + recoverable store (`recall_event`), T3 LLM summary only, T4 staged (elide at soft threshold B1, summarise oldest middle events at hard threshold B2; preamble and >=2 recent turns verbatim).
+- **Numbers**: At 32k with no management (T0) all four models are at roughly 6-13% on SWE-bench (table text garbled by PDF extraction) vs 20.6-23.8 (30B), 39.6-43.0 (120B), 51.4-58.4 (550B), 63.2-66.2 (Mistral) with any managed tier, all significant by McNemar BH-FDR. At 32k, summary-only (T3) vs elision-only (T1): 23.8 vs 20.6 (30B), 39.6 vs 43.0 (120B), 58.4 vs 51.4 (550B), 63.2 vs 64.4: no consistent winner. Benefit shrinks as the window grows (128k: managed ~ T0 for most models). Recoverable elision (recall tool) "is rarely invoked and does not improve accuracy" (Nemotron 30B at 32k T2 averages 4.3 recalls/task and scores 3.4% below T1 on TB). T4 gives best efficiency.
+- **Admitted limitations / future work**: One threshold policy with fixed settings; planning/action-space ablated only at 128k/T4; each setting run once per task; Terminal-Bench has only 89 tasks so many contrasts are not significant.
+- **Relevance**: Confirms that at 32k the main benefit of management is simply avoiding overflow termination (matches "a context overflow kills the session"); elision-then-summary beats summary alone on efficiency, and masking is a strong cheap baseline at 32k as well.
+
+### 5. Wall-clock and time-budgeted agents
+
+#### On-the-Clock: On the Clock: Towards Punctual and Productive Time-Budgeted AI Agents
+- **Ref**: arXiv 2610.10833 (NeurIPS 2026 Workshop on Resource-Aware Agentic AI), Oct 2026, https://arxiv.org/abs/2610.10833
+- **Contribution**: Small agents under explicit wall-clock budgets: Qwen3.6-27B on 5 MLE-Bench Lite competitions and Qwen3-4B on Zork I. Compares prompt-only budgets, harness timing injection, enforcement hooks (shorten/block long commands), and GRPO with time-shaped rewards.
+- **Numbers**: Prompt-only: Qwen3.6-27B "runs for roughly ten minutes regardless of the stated budget" (Dog Breed task: on-time 35% at 8 min, 83% at 15 min, 100% at 60 min; elapsed 12.9 +/- 12.6 min at 8-min budget). Harness-injected timing "substantially improves budget adherence without measurable loss in performance"; enforcement tightens further at small quality cost (shortening a command's time limit kept most quality and gave 90% valid submissions; blocking commands reduced valid submissions). GRPO gets near-perfect adherence on Zork I and generalises to unseen budgets, but task score does not improve over the untrained harness on MLE-Bench, and the policy pads extra time with repeated actions and collapses to the shortest-budget strategy.
+- **Admitted limitations / future work**: Sec. 5: strategy collapse across budgets, memorisation of a walkthrough in fixed Zork, budget adherence through invalid actions; ML-engineering and text games only, not SWE.
+- **Relevance**: Direct evidence for the fixed-6-minute design: a prompt-only time budget is not respected by small agents, but harness-side timers/enforcement are cheap and loss-free. Closest work to "wall-clock budget per task" but not a SWE benchmark.
+
+#### Timely-Machine: Timely Machine: Awareness of Time Makes Test-Time Scaling Agentic
+- **Ref**: Ma et al., arXiv 2601.16486, 23 Jan 2026, https://arxiv.org/abs/2601.16486
+- **Contribution**: Redefines test-time compute as wall-clock time when tool latency decouples time from token count; Timely-Eval benchmark (high-/low-frequency tool calls, time-constrained reasoning) and Timely-RL (SFT cold start + RL; TimelyLM-8B).
+- **Numbers**: With short tool latency smaller models can beat larger ones by doing more interaction rounds; as latency grows the large model's higher interaction quality wins; "existing models fail to adapt reasoning to time budgets"; TimelyLM-8B improves on Qwen3-8B across Timely-Eval (e.g. 36.0 -> 48.5 and 5.2 -> 29.5 on two columns of the main table).
+- **Admitted limitations / future work**: Limitations: text-only tasks, multi-agent latency not handled, accuracy gains vary with benchmark difficulty; future work on balancing time constraint vs performance.
+- **Relevance**: Supports the intuition that at 30 tok/s a small model's advantage is only more steps per minute, and the tipping point depends on tool latency; no SWE tasks.
+
+#### AgentTime: AgentTime: Can Agents Estimate and Control Their Own Runtime?
+- **Ref**: Ofengenden & Andriushchenko, arXiv 2610.09944, 7 Oct 2026, https://arxiv.org/abs/2610.09944
+- **Contribution**: 222 tasks from 18 sources (coding, computer use, research); instructs an agent in its native harness to work for a requested duration (about a minute to days), predict its runtime, and estimate elapsed time.
+- **Numbers**: Typical deviation from the requested runtime 2.9x (one Claude Code agent) vs 1.2x (one Codex agent); 14 of 158 reviewed runs of one agent explicitly slept after appearing to finish; runtime forecasts overestimate natural runtimes; removing temporal information more than doubles deviation in retrospective estimation. 3,442 attempts, ~1,700 agent-hours.
+- **Admitted limitations / future work**: Sec. 6: single run per task/duration, three agents from two labs, one instruction wording at max reasoning effort; runtime depends on serving speed.
+- **Relevance**: Frontier agents with native harnesses cannot reliably self-time without clocks; supports giving the Gemma agent a harness-side deadline rather than relying on prompts.
+
+#### Real-Time-Deadlines: Real-Time Deadlines Reveal Fragile Temporal Adaptation in LLM Strategic Dialogues
+- **Ref**: Sehgal et al., arXiv 2601.13206 (EMNLP 2026), Jan 2026, https://arxiv.org/abs/2601.13206
+- **Contribution**: Paired-agent negotiations under 240-360 s wall-clock deadlines; compares initial-deadline-only against per-turn remaining-time updates and presentation variants.
+- **Numbers**: Remaining-time feedback raises deal closure from 4% to 32% for GPT-5.1-chat-latest and offer acceptance more than sixfold; near-perfect closure under turn limits; qualitative urgency cues can beat numeric countdowns; repeated reminders do not consistently help; "fragile, model-dependent, and sensitive to how temporal constraints are presented".
+- **Admitted limitations / future work**: negotiation domain only; effects vary by model.
+- **Relevance**: A "budget-awareness prompting" result with a 4% -> 32% effect for wall-clock, in a non-coding domain.
+
+#### SWE-Effi and BATS (see sections 2 and 3)
+Cross-reference: SWE-Effi measures resolve-vs-time curves; BATS names latency as unaddressed.
+
+### 6. Token economics of coding agents
+
+#### Token-Spend: How Do AI Agents Spend Your Money? Analyzing and Predicting Token Consumption in Agentic Coding Tasks
+- **Ref**: Bai et al., arXiv 2604.22750 (v3 2 Oct 2026), https://arxiv.org/abs/2604.22750
+- **Contribution**: First systematic study of token consumption: 8 frontier LLMs on SWE-bench Verified trajectories; also whether models can predict their own token use.
+- **Numbers**: Agentic tasks consume ~1000x more tokens than code reasoning/chat, input tokens dominate; same-task runs differ up to 30x in total tokens; accuracy peaks at intermediate cost and saturates; Kimi-K2 and Claude-Sonnet-4.5 use >1.5M more tokens than GPT-5 on average; self-predicted token use correlates at most r=0.39 and systematically underestimates.
+- **Admitted limitations / future work**: eight models only; trajectory collection is expensive.
+- **Relevance**: Support for early stopping/step caps: more tokens != more accuracy. Frontier models only.
+
+#### Token-Not-Cost: Token Reduction Is Not Cost Reduction
+- **Ref**: Weinberger et al., arXiv 2607.12161 (v5 Aug 2026), https://arxiv.org/abs/2607.12161
+- **Contribution**: Controlled test of three tool-output compression tools against unmodified Claude Code, measuring provider-billed cost, success, cache traffic, behaviour.
+- **Numbers**: Largest setup cut delivered tool-output tokens by 38.4% yet raised billed cost by 6.8%; correlation between token reduction and cost reduction r=0.15; compression changes trajectories (more retrieval, diagnosis, testing, turns); aggressive compression reduced successful patch application on a SWE-bench Go subset.
+- **Admitted limitations / future work**: Sec. 14: one harness (Claude Code), one provider's cache and July-2026 prices, baseline success 96-98% so small effects are undetectable.
+- **Relevance**: Compaction rewrites the prefix and breaks KV/prefix cache; this matters for a local 31B server with prefix caching, though with local serving the cost is latency rather than dollars.
+
+#### Context-Contamination: Why Retrying Fails: Context Contamination in LLM Agent Pipelines
+- **Ref**: Yang, arXiv 2605.08563, 8 May 2026, https://arxiv.org/abs/2605.08563
+- **Contribution**: Formal model: a failed attempt left in context raises per-step error from eps0 to eps1; closed-form pass@K, optimal pipeline depth T* = sqrt(B log(1/(1-eps1))/log(1/(1-eps0))), clean-restart dominance.
+- **Numbers**: On SWE-bench Verified data the IID model overestimates pass@3 by 17.4 pp (98.6% vs 81.2%); CCRM fits with error <0.001 and implies eps1/eps0 = 7.1.
+- **Admitted limitations / future work**: theoretical model fit to a single dataset; no LLM experiments with compaction; one author.
+- **Relevance**: Argues failed-attempt text left in context is harmful; a summary carrying forward "what failed" could either help or contaminate. Weak evidence (theory fit to aggregate data).
+
+### 7. What compaction drops and what it costs (2026 empirical studies)
+
+#### Beyond-Token-Savings: Beyond Token Savings: A Systematic Study of Context Compression in LLM Agents
+- **Ref**: Satish, Sinha et al., arXiv 2609.32961, 26 Sep 2026, https://arxiv.org/abs/2609.32961
+- **Contribution**: Isolates what/when/how-much of compression in a modified mini-swe-agent: 65 policies x 3 locally served open-weight models (Qwen3.5-35B-A3B, Devstral-Small-2-24B, GLM-4.7-Flash; vLLM, agent model also summarises by default) on SWE-bench Verified and Terminal-Bench 1.0, ~35,000 runs, 3 repeats each; primitives = truncation, tool-result clearing (TRC), summarisation (SU), structured summaries, stacked variants; trigger thresholds tight/primary/loose (10K/15K/20K for Qwen on SWE-bench).
+- **Numbers**: Every policy cuts tokens (0.4-0.7x on SWE-bench) but success ranges from -11.0 pp to +0.7 pp vs full context; TRC mostly matches full context (tokens 0.57x, latency 0.79x, billed cost 0.71x; resolve 53.7%), whereas plain LLM summarisation (SU) at 0.59x tokens loses 11.0 pp. Policies using ~0.6x tokens still need 0.79-1.0x latency; on Terminal-Bench policies using ~1/3 of the tokens take 1.2-1.8x as long and 11 of 12 lose 5-13 pp. **Summarisation calls account for 28-46% of solved-run wall-clock time** for the four summarisation primitives. Summariser sensitivity (25 tasks, Qwen agent): SU falls from 53.3% (self-summary) to 37.3% with a Qwen3.5-9B summariser and **28.0% with a Gemma-4-12B summariser**, whereas stacked TRC+SU stays near its 68.0% baseline (62.7% / 66.7%); smaller summarisers did not reduce latency.
+- **Admitted limitations / future work**: Sec. 5 argues for evaluating compression by "the executions it enables"; policies must be tailored to task/model/workload; note Qwen was served with prefix caching disabled (App. A) and subsets of 25 tasks for the summariser study; no dedicated limitations section found.
+- **Relevance**: Strongest direct evidence against a summary-only policy for 24-35B local models and for slow summarisation inside a time cap; shows rule-based clearing of tool results first beats summarising everything. Also the only study here that reports end-to-end latency.
+
+#### Reacquisition-Cost: What Does Context Compression Cost an Agent? Interaction Costs Unrevealed by Task-Completion Metrics
+- **Ref**: Liu, arXiv 2608.16370, 17 Aug 2026, https://arxiv.org/abs/2608.16370
+- **Contribution**: Controlled protocol in a deterministic planning environment (24-turn horizon, 3 models): compression severity, dropping vs fact-preserving operator, oracle restoration of dropped state, decomposition of tool calls into retrieval vs execution.
+- **Numbers**: Retrieval calls rise in all 6 model-regime comparisons and explain almost all added interaction (5 of 6 significant after Holm); at the 5x compression point completion is unchanged in every cell. GPT-5.5: completion 80% -> 85% (p=1.0) while retrieval calls rise 21.0 -> 63.9 (p=.002). Replacing retained state with irrelevant content raises retrieval 57% (p<.001) with no significant completion change. In ALFWorld, sliding compression produced no retrieval surge, so the effect is environment-dependent.
+- **Admitted limitations / future work**: Synthetic deterministic planning environment, 24-turn horizon, single-author, not SWE.
+- **Relevance**: Mechanism for why compaction under a step cap (30 tool calls) can cost success: dropped state must be re-read with tool calls that count against the cap, which completion-only evaluations hide.
+
+#### TRACE: Towards Reliable Context Compression for Long-Horizon Agents: An Empirical Study of Execution Instability
+- **Ref**: Min et al., arXiv 2608.06503 (v2 14 Oct 2026), https://arxiv.org/abs/2608.06503
+- **Contribution**: Preliminary study showing recurrent compression weakens the influence of recent interactions (more blocked actions, repeated exploration, run-to-run instability); TRACE evaluates each compaction event by paired closed-loop continuations from the same state and optimises the natural-language compression prompt with frozen models.
+- **Numbers**: AppWorld only; improvements in task performance, multi-run reliability and context-execution efficiency over existing compression baselines (no SWE numbers).
+- **Admitted limitations / future work**: Self-described "preliminary empirical study", single environment, initial results.
+- **Relevance**: Names the failure mode "repeats exploration after a summary", which would burn a 30-call budget.
+
+#### Brittle-Memory: Reclaim Evaluation: A Lossy Memory Is Worse Than an Empty One
+- **Ref**: Kwon, arXiv 2606.25449 (v5 Jul 2026), https://arxiv.org/abs/2606.25449
+- **Contribution**: Shows compression that keeps a conclusion but drops its derivation makes models re-emit stale values confidently instead of abstaining; source-first policy (keep recomputable source, drop re-derivable conclusion) restores correctability at equal budget; an 8B and a frontier model "wall in the same place".
+- **Numbers**: Judge-free exact recovery tests on three deployed memory systems, MultiWOZ and tau-bench (numbers in 23 tables, not extracted).
+- **Admitted limitations / future work**: Maps where the fix fails; effect compounds through memory loops; not coding-specific.
+- **Relevance**: Conceptual support for "summaries of diffs without diffs are worse than nothing": relevant when the summarizer drops tool outputs and edits.
+
+#### ICLR-Forget: When Can Agents Forget Their Reasoning? Interaction-Aware Compression for Long-Horizon Reasoning
+- **Ref**: Wang et al., arXiv 2609.29875, 24 Sep 2026, https://arxiv.org/abs/2609.29875
+- **Contribution**: Training-free ranking of historical reasoning blocks by frozen proxy entropy, dropping reasoning while keeping actions, tool calls and observations.
+- **Numbers**: WorkBuddyBench (260 tasks): reward 0.699 -> 0.718 with input/output/cache-read tokens -25.5% / -14.4% / -33.3%; "trajectory amplification": local deletions can change total computation nonlinearly; historical reasoning is replaceable once derived state is externalised into code, files or tool outputs.
+- **Admitted limitations / future work**: not a SWE benchmark; training-free proxy models.
+- **Relevance**: With thinking on, old thinking blocks are the cheapest thing to drop; evidence that dropping reasoning but keeping observations is safe.
+
+#### SWE-AGILE: SWE-AGILE: A Software Agent Framework for Efficiently Managing Dynamic Reasoning Context
+- **Ref**: Lian et al., arXiv 2604.11716, 13 Apr 2026, https://arxiv.org/abs/2604.11716
+- **Contribution**: Sliding window of detailed reasoning (window size random in [2,5]) plus compressed "Reasoning Digests" for older thoughts, avoiding both context explosion and re-reasoning; 7B-8B models, 2.2k trajectories.
+- **Numbers**: Claims a new standard for 7B-8B on SWE-bench Verified; 14B SFT variant 30.06% on Verified; 8B reaches 14.77% on SWE-bench Lite vs SWE-smith-7B 11.7% and R2E-Gym 11.0%.
+- **Admitted limitations / future work**: window size randomised and its effect not analysed ("Limitation" section).
+- **Relevance**: Small-model recipe that treats thinking as a managed context component, directly the thinking-on + 32k problem; but trained.
+
+#### ARC: Addressable Recall Compaction for Long Context-Window Control in AI Agents
+- **Ref**: Ichikawa et al., arXiv 2607.25066, Jul 2026, https://arxiv.org/abs/2607.25066
+- **Contribution**: Append-only ID-addressable log of tool observations; compaction replaces old observations with compact citations the agent can dereference. Qwen3-8B at 16k and Qwen3-32B at 32k.
+- **Numbers**: Needle-in-a-haystack exact-answer accuracy 99.40% vs 88.12% for the best baseline; LongBench-v2 Hard 29.97% vs 28.25% (margin 1.6-2.3 pp, ARC 27.47% at 8B / 32.47% at 32B); lower serving time and HBM traffic under their hardware-cost model.
+- **Admitted limitations / future work**: Margin narrows on tasks requiring synthesis since perfect recall can still give a wrong answer; not an agentic coding benchmark.
+- **Relevance**: One of the few 16k/32k small-model compaction studies; but contrasts with Harness-Design finding that recall tools are rarely used by models.
+
+#### DTOC: Dynamic Tool Output Compression for Adaptive Context Management in AI Agents
+- **Ref**: arXiv 2609.26121 (Discovery Science 2026), Sep 2026, https://arxiv.org/abs/2609.26121
+- **Contribution**: Reversible placeholders for tool outputs, with originals in external memory and on-demand restoration inside a ReAct loop; evaluated on DeepSWE.
+- **Numbers**: Model-dependent: Sonnet 4.6 and GPT-5.4 input tokens -10.3% / -12.7%, steps -2.4% / -32.3%, solve rate 2.5x / 1.5x, cost per solved task 3x / 3.5x lower; GPT-5.5 doubles solve rate at half cost; other models no solve-rate change and worse cost. Disable-only (non-reversible) compression degraded performance.
+- **Admitted limitations / future work**: mixed results for non-"responsive" models.
+- **Relevance**: Reversibility helps strong models and not others, the same split as in Harness-Design; a Gemma 4B may not use restore tools.
+
+#### Chroma-Context-Rot: Context Rot: How Increasing Input Tokens Impacts LLM Performance
+- **Ref**: Hong, Troynikov, Huber (Chroma), technical report, 14 Jul 2025, https://www.trychroma.com/research/context-rot
+- **Contribution**: 18 LLMs (Claude, GPT, Gemini, Qwen3 families) on needle-in-haystack variants (needle-question similarity, distractors, haystack topic/structure), repeated words, and LongMemEval focused (~300 tokens) vs full (~113k tokens) prompts (306 prompts).
+- **Numbers**: Performance falls with input length even on simple tasks; lower needle-question similarity degrades faster; adding distractors lowers accuracy and one distractor already drops below the needle-only baseline; shuffled haystacks beat coherent ones across all 18 models; every model scores significantly higher on focused than full LongMemEval prompts; Qwen3-8B begins emitting random words around 5,000 repeated words, Gemini around 500-750; needle position (11 positions) had no notable effect. Exact per-model values are only in charts.
+- **Admitted limitations / future work**: Real tasks harder so degradation likely worse; input length and difficulty hard to disentangle; mechanisms unexplained; two haystack topics only.
+- **Relevance**: Background for why shorter active contexts help even below the window limit (Qwen3-8B degrades early), though non-agentic and not measured for Gemma.
+
+#### Anthropic-Context-Engineering: Effective Context Engineering for AI Agents (blog)
+- **Ref**: Anthropic engineering blog, 2025 (date not shown on fetched page), https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
+- **Contribution**: Practice guide: context is a finite "attention budget"; compaction = summarise near the limit and restart (Claude Code keeps architectural decisions, unresolved bugs and implementation details plus the five most recently accessed files); tool-result clearing is the "safest lightest touch" form; structured note-taking outside context; sub-agents return 1,000-2,000-token summaries of tens of thousands of tokens of exploration.
+- **Numbers**: None for compaction, note-taking or sub-agents (only "substantial improvement" on research tasks, unquantified).
+- **Admitted limitations / future work**: "overly aggressive compaction can result in the loss of subtle but critical context whose importance only becomes apparent later"; advice to tune the compaction prompt "to maximize recall" first, then precision; runtime exploration is slower.
+- **Relevance**: The grey-literature origin of the ADK-style policy; its own advice (keep recent files, clear tool results first) differs from ADK's text-only summariser.
+
+#### Manus: Context Engineering for AI Agents: Lessons from Building Manus (blog)
+- **Ref**: Manus team, blog, 2025 (author byline not verified), https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
+- **Contribution**: KV-cache hit rate is "the single most important metric" (average input:output ratio ~100:1; Claude Sonnet cached $0.30/MTok vs uncached $3/MTok); keep prefix stable and append-only; compression "always designed to be restorable" (keep URL/path, drop content; filesystem as context); keep failed actions in context; rewrite todo.md to keep goals in recent attention; ~50 tool calls per typical task.
+- **Numbers**: no measured hit rates or ablations ("Stochastic Graduate Descent").
+- **Admitted limitations / future work**: explicitly "not universal truth"; "any irreversible compression carries risk".
+- **Relevance**: For a local server, prefix-cache reuse is wall-clock (prefill) rather than dollars: compaction invalidates the cache from the rewritten point onward.
+
+#### Cognition: Don't Build Multi-Agents (blog)
+- **Ref**: Cognition (Walden Yan per later coverage), blog, mid-2025, https://cognition.com/blog/dont-build-multi-agents
+- **Contribution**: Principles "Share context, and share full agent traces" and "Actions carry implicit decisions"; suggests a dedicated (possibly fine-tuned smaller) LLM to compress long action/conversation histories into key details, events and decisions; admits this is "hard to get right" and "You will still eventually hit a limit".
+- **Numbers**: none.
+- **Admitted limitations / future work**: no failure analysis of summarisation provided; Apr 2026 follow-up says multi-agent works if writes stay single-threaded (from search snippet, not opened).
+- **Relevance**: Argues against sub-agent context isolation for write-heavy tasks; supports a single agent with a dedicated compressor trained on what to keep.
+
+#### SWE-agent-history: SWE-agent history processors (documentation)
+- **Ref**: SWE-agent docs, "History Processors", https://swe-agent.com/latest/reference/history_processor_config/ (accessed 2026-10-22)
+- **Contribution**: `LastNObservations(n, polling)` elides all but the last n observations with "Old environment output: (n lines omitted)"; tag-based keep/remove; `RemoveRegex` (default strips `<diff>.*</diff>`, keep_last); cache-control processor for Anthropic.
+- **Numbers**: none; notes the processor "breaks prompt caching" because history changes every query, with `polling` as partial workaround; says most current models fit enough context that it is often unnecessary; SWE-agent now maintenance-only (mini-swe-agent recommended).
+- **Admitted limitations / future work**: the cache-breaking note.
+- **Relevance**: The reference implementation of observation masking evaluated in Complexity Trap (M=10).
+
+### 8. Budget awareness, early stopping, trajectory reduction, latency
+
+#### BATS-v2-SWE: BATS v2 (COLM 2026), Appendix C.3 SWE-bench Verified check
+- **Ref**: Liu et al., arXiv 2511.17006v2 (Aug 2026), HTML App. C.3, https://arxiv.org/html/2511.17006v2
+- **Contribution**: Budget Tracker (same prompt as main paper, inserted after each tool response) added to mini-swe-agent with Gemini-3-Flash-Preview on all 500 SWE-bench Verified tasks, with a global tool-call budget.
+- **Numbers** (resolve %, mean tool calls, cost): budget 50: baseline 36.8% (46.0 calls, 18.50 cents) vs +Tracker 55.4% (45.7 calls, 18.88 cents) = +18.6 pp; budget 60 baseline 53.2%; budget 70: baseline 63.0% (53.6 calls) vs +Tracker 70.0% (55.1 calls). Tracker at 50 beats baseline at 60 on every axis (-9.9% calls, -7.5% cost, +2.2 pp).
+- **Admitted limitations / future work**: single model (Gemini-3-Flash-Preview), single scaffold, single run per cell as reported; mechanism not isolated (the text does not say whether the gain is from submitting before the cap or from better exploration).
+- **Relevance**: The only budget-awareness measurement on SWE-bench with a hard tool-call cap that I found; the effect is largest when the cap binds (50 calls) which is the ~30-call regime here. Unknown for small models and for step caps that coincide with a time cap.
+
+#### BAGEN: BAGEN: Are LLM Agents Budget-Aware?
+- **Ref**: Lin et al., arXiv 2606.00198, 29 May 2026, https://arxiv.org/abs/2606.00198
+- **Contribution**: Formalises budget-awareness as progressive interval estimation (predict upper/lower bound on remaining budget and alert when completion is unlikely); rollout-replay scoring on Sokoban, Search-R1, SWE-bench (cap 160 turns, 64 rollouts per model), and a Warehouse environment with cost/time/occupancy budgets; five frontier agents; Qwen-7B estimators trained with SFT+RL on Sokoban.
+- **Numbers**: Budget-awareness correlates weakly with task success (r=0.35); frontier models are over-optimistic and keep spending on tasks unlikely to succeed; early stopping saves 28-64% of tokens on failed trajectories; interval-coverage caps at 47% after SFT+RL.
+- **Admitted limitations / future work**: Extending training to more scales/environments, closing the loop beyond early stop, fungible budgets across dimensions; interval estimation "the central open problem".
+- **Relevance**: Evidence that agents (without help) do not know when they will run out; early stop is the actionable lever. Estimators were trained only on Sokoban.
+
+#### AgentDiet: Reducing Cost of LLM Agents with Trajectory Reduction
+- **Ref**: Xiao et al. (FSE 2026), arXiv 2509.23586 (v2 Mar 2026), https://arxiv.org/abs/2509.23586
+- **Contribution**: Inference-time removal of useless / redundant / expired information in a coding agent's trajectory by a separate reflection LLM looking at a sliding window (e.g. GPT-5 mini reducing a Claude 4 Sonnet trajectory); implemented on Trae Agent; found from 100 inspected SWE-bench Verified trajectories that waste is widespread.
+- **Numbers**: Input tokens -39.9% to -59.7%, total computational cost -21.1% to -35.9%, with the Pass% within -1.0 to +2.0 points of the original and no increase in steps (2 LLMs, 2 benchmarks). Reflection overhead 5-10% of cost. A simple `erase` tool the agent could call was ignored even by Claude 4 Sonnet and Gemini 2.5 Pro despite explicit prompts (so agent-initiated compaction fails; external reduction works).
+- **Admitted limitations / future work**: Sec. 6: only Trae Agent, about US$2000 of experiments; the reflection LLM could be a cheaper custom model; hyperparameters could adapt to task difficulty; possible data leakage.
+- **Relevance**: A content-aware, per-step, tool-output-aware reducer (not threshold summarisation) that preserves success, but it uses frontier models and an extra LLM call per step, which in a 30 tok/s setting costs wall-clock.
+
+#### ReSum: ReSum: Unlocking Long-Horizon Search Intelligence via Context Summarization
+- **Ref**: Wu et al., arXiv 2509.13313 (v3 Mar 2026, ICML), https://arxiv.org/abs/2509.13313
+- **Contribution**: Plug-and-play periodic summarisation tool for web agents; ReSum-GRPO with advantage broadcasting across segmented trajectories.
+- **Numbers**: +4.5% over ReAct training-free, +8.2% more with ReSum-GRPO; WebSailor-3B goes 8.2% -> 20.5% Pass@1 on BrowseComp-zh with ReSum-GRPO; still helps with a 128k context; plain GRPO "fails to enable agents to master summary-conditioned reasoning".
+- **Admitted limitations / future work**: Conclusion: current summarisation is rule-based and external; future work needs autonomous summarisation and "quality control to ensure the preservation of long-range dependencies".
+- **Relevance**: Evidence on 3B-class agents: untrained agents do not reason well over summaries, i.e. a 4B Gemma may need adaptation to benefit.
+
+#### SLIM: Lost in the Maze: Overcoming Context Limitations in Long-Horizon Agentic Search
+- **Ref**: Yen et al. (Princeton, Samaya AI), arXiv 2510.18939 (v2 Jul 2026, ICML 2026), https://arxiv.org/abs/2510.18939
+- **Contribution**: Shows popular agentic-search frameworks fail on >50% of long-trajectory samples mainly from context-window, tool-budget or early-stop failures; SLIM = separate search/browse tools + periodic summarisation.
+- **Numbers**: o3 + SLIM 56% BrowseComp and 33% HLE, +8 and +6 points over the best open-source frameworks with 4-6x fewer tool calls; GLM-4.7-Flash + SLIM +10 points over Search-o1 on BrowseComp at a third of the cost.
+- **Admitted limitations / future work**: web-search domain; the paper builds an automated trajectory-error taxonomy (no limitations section extracted).
+- **Relevance**: >50% of failures in long agent runs come from context/budget mismanagement, the same failure class as an ADK overflow kill.
+
+#### Speculative-Actions: Speculative Actions: A Lossless Framework for Faster Agentic Systems
+- **Ref**: Ye et al. (Columbia), arXiv 2510.04371 (ICLR 2026 oral), https://arxiv.org/abs/2510.04371
+- **Contribution**: A fast Speculator guesses next actions, executed in parallel with the slow Actor; results committed only if the guess matches (lossless); cost-latency analysis for speculative breadth.
+- **Numbers**: up to 55% next-action prediction accuracy, up to 20% latency reduction (gaming, e-commerce, web search; lossy OS extension).
+- **Admitted limitations / future work**: truncating context to a fixed window or disabling exploration after convergence "left for future work"; tested in four non-SWE environments.
+- **Relevance**: The only parallel/speculative result found; gains need cheap speculators and idempotent actions; for a single local GPU decode-bound at 30 tok/s a second model would compete for the same device.
+
+#### CacheWise-Continuum: KV-cache serving for coding agents
+- **Ref**: Tiwari et al., CacheWise, arXiv 2606.16824, 15 Jun 2026, https://arxiv.org/abs/2606.16824 ; Continuum, arXiv 2511.02230 (Nov 2025), https://arxiv.org/abs/2511.02230
+- **Contribution**: Coding-agent sessions reuse large prefixes and create sustained KV pressure; CacheWise (vLLM) does prefix-aware scheduling and reuse-aware eviction from tool-call metadata; Continuum pins KV during tool calls with a time-to-live.
+- **Numbers**: CacheWise: up to 2-2.6x fewer KV evictions, up to 3.5x faster total session completion on collected traces. Continuum: >8x average job-completion improvement on SWE-Bench/BFCL/OpenHands traces with Llama-3.1 8B/70B, Gemma-3 12B, GLM-4.5 355B.
+- **Admitted limitations / future work**: multi-session serving scenarios, not single-user local; neither studies compaction rewriting the prefix.
+- **Relevance**: Confirms that prefix reuse is the main latency lever in agent loops; a compaction that rewrites the prompt invalidates the reusable prefix (the prefill cost of this is not measured in these papers).
+
+### 9. Long-context degradation, thinking budgets, time-aware harnesses, memory
+
+#### Lost-in-the-Middle: Lost in the Middle: How Language Models Use Long Contexts
+- **Ref**: Liu et al., arXiv 2307.03172 (TACL), Jul 2023 (v3), https://arxiv.org/abs/2307.03172
+- **Contribution**: Multi-document QA and key-value retrieval show a U-shaped accuracy curve over the position of the relevant passage; performance drops as inputs get longer, even for long-context models.
+- **Numbers**: With the relevant document in the middle, GPT-3.5-Turbo does worse than closed-book (56.1%); extended-context variants often perform identically to their short-context versions; 50 retrieved documents instead of 20 improve only ~1.5% (GPT-3.5-Turbo) / ~1% (claude-1.3).
+- **Admitted limitations / future work**: 2023 models, non-agentic retrieval tasks.
+- **Relevance**: Background only; cited by Complexity Trap and SWE-AGILE as motivation, but no one in this list measures position effects inside agent trajectories.
+
+#### Confucius-CCA: Confucius Code Agent: Scalable Agent Scaffolding for Real-World Codebases (App. D thinking-budget scaling)
+- **Ref**: arXiv 2512.10398, Dec 2025, https://arxiv.org/abs/2512.10398
+- **Contribution**: Scaffold with hierarchical working memory and note-taking; includes a thinking-budget sweep.
+- **Numbers**: Claude 4 Sonnet on a SWE-bench Verified subset: thinking budget 8k / 16k / 32k = 67.3 / 68.4 / 68.7% resolve (diminishing returns beyond 16k); Table 5: CCA 74.6 vs OpenHands 72.8 vs SWE-agent 66.6 with Claude 4 Sonnet.
+- **Admitted limitations / future work**: App. D: `thinkingBudget` "cannot precisely control" internal trace length and Claude returns only a summarised trace, so actual reasoning length is unknown.
+- **Relevance**: Only SWE-bench thinking-budget sweep found; shows small effects at large budgets (8k-32k per step) on a frontier model, a regime of no relevance to a 10.8k-token total generation cap at 30 tok/s.
+
+#### Subgoal-MiRA: A Subgoal-driven Framework for Improving Long-Horizon LLM Agents
+- **Ref**: arXiv 2603.19685, Mar 2026, https://arxiv.org/abs/2603.19685
+- **Contribution**: Subgoal decomposition for online planning plus milestone-based RL (MiRA); WebArena-Lite.
+- **Numbers**: Gemma3-12B 6.4% -> 43.0% success with MiRA (above GPT-4-Turbo 17.6%, GPT-4o 13.9%, WebRL 38.4%). Per-step static thinking budget on Gemini: success ~24.3% (256 tokens) -> ~32.5% (8192) while per-step inference time rises from ~6.5 s to ~19 s; 16384 tokens drops back to ~26%; adaptive ("Auto") budget matches the best static budget.
+- **Admitted limitations / future work**: web navigation, not SWE; proprietary planner at inference.
+- **Relevance**: A per-step thinking-budget vs latency curve with non-monotonic returns, and evidence that Gemma-class 12B models can improve a lot with RL on agentic tasks.
+
+#### LemonHarness: LemonHarness Technical Report
+- **Ref**: arXiv 2606.24311, Jun 2026, https://arxiv.org/abs/2606.24311
+- **Contribution**: Execution framework with a time-aware mechanism: tasks are assigned a time tier, elapsed and remaining time are fed back to the model so it can rebalance exploration, implementation, validation, and avoid timeouts from long waits or excessive verification.
+- **Numbers**: Terminal-Bench 2.0 84.49% over 445 trials (GPT-5.3-CodeX), 86.52% with GPT-5.5; no ablation isolating the time-aware component found in the text.
+- **Admitted limitations / future work**: Sec. 5: aligned to GPT-style tool calling; generality across other model families not validated.
+- **Relevance**: A deployed instance of the "remaining-time feedback" lever but without a measured effect.
+
+#### SWE-Serve: SWE-Serve: Benchmarking Agentic Engineering For Production Inference Serving
+- **Ref**: Williams et al., arXiv 2609.26777, 22 Sep 2026, https://arxiv.org/abs/2609.26777
+- **Contribution**: 53 SGLang tasks, 11 models x 31 model-effort configurations (low..max reasoning effort), mini-SWE-agent, reports pass@1, cost, output tokens and wall-clock per task.
+- **Numbers**: Best configuration 75% pass@1; higher reasoning effort reliably raises cost but "not consistently" pass@1; E2E serving tests reject ~one-third of patches that pass all other tests (45.9% vs 69.4%).
+- **Admitted limitations / future work**: frontier models only, one benchmark domain.
+- **Relevance**: Reasoning effort is not monotone in success on agentic coding (cf. Overthinking); but no per-step budget granularity.
+
+#### Less-Context: Less Context, Better Agents: Efficient Context Engineering for Long-Horizon Tool-Using LLM Agents
+- **Ref**: Lodha et al. (Microsoft Dynamics), arXiv 2606.10209, 8 Jun 2026, https://arxiv.org/abs/2606.10209
+- **Contribution**: Enterprise expense-itemisation workflow (50 tasks, 5 runs, GPT-5 configurations): full history vs last-5-tool-pairs pruning vs pruning + summarisation.
+- **Numbers**: Full history 71.0% complete itemisation, 1,480,996 tokens, 14.56 h; prune to last 5 tool pairs 79.0%, 535,274 tokens, 5.39 h; prune + summary 91.6%, 553,374 tokens, 5.79 h. Cross-model check with Claude Sonnet 4.5.
+- **Admitted limitations / future work**: one enterprise workflow, frontier models.
+- **Relevance**: Shows "keep last k tool results verbatim + summarise the rest" beats both full history and pruning alone, the opposite of "summary-only" robustness results; k=5 matches ADK's last ~5 events but here those are tool pairs.
+
+#### ACM: ACM: Agentic Context Management for Long Horizon Tasks
+- **Ref**: Li et al., arXiv 2607.23809, 26 Jul 2026, https://arxiv.org/abs/2607.23809
+- **Contribution**: Context-editing tools (agent decides when to compress, offloads discarded content to external memory, queries on demand), post-training pipeline with Qwen3.5-397B-A17B teacher and a Qwen3.5-9B student; agentic search and coding.
+- **Numbers**: Reports consistent gains over ReAct and summary baselines (re-implemented by the authors); reduced peak token pressure and more consistent solutions across trials; a Qwen3-4B-Thinking comparison is in App. D (not extracted).
+- **Admitted limitations / future work**: Limitations: presupposes a base model with strong long-horizon ability; "weaker models that fail or hallucinate within a few turns yield trajectories too short to benefit from compression"; baselines re-implemented.
+- **Relevance**: Independent statement that sub-10B models "lose coherence after only a few turns", so compaction is moot for them (cf. Bud's 8B submitting after ~10 turns).
+
+#### VibeMemBench: VibeMemBench: Evaluating Memory Systems for Coding Agents on Real Repository Coding Tasks
+- **Ref**: Fan et al., arXiv 2609.23570, 20 Sep 2026, https://arxiv.org/abs/2609.23570
+- **Contribution**: 111 SWE-rebench V2 targets from 90 repositories with 3,634 history trajectories; verified useful experience is injected, or four existing memory systems must build and retrieve it.
+- **Numbers**: Direct injection of verified experience raises resolution on 4 of 5 solvers by 1.1-4.5 pp and lowers steps on all 5; but with four existing memory systems 11 of 12 solver-system pairings fail to beat memory-off.
+- **Admitted limitations / future work**: cross-task persistent memory, not within-task compaction.
+- **Relevance**: Warns against assuming that memory/summaries of past work help on coding; relevant if the paper proposes cross-task memory (not in the current setting).
+
+### 10. The system under study (documentation, not a paper)
+
+#### ADK-Compaction: Google ADK "Compress agent context for performance" (documentation)
+- **Ref**: Google ADK docs, https://adk.dev/context/compaction/ (accessed 2026-10-22)
+- **Contribution**: Two strategies: sliding window (every `compaction_interval` new user invocations, with `overlap_size` preceding invocations) and token-based (`token_threshold` triggers "tail-retention compaction"; `event_retention_size` recent events stay raw "to preserve immediate context and pronoun resolution"). If both are set the token-based one takes precedence. Summariser prompt is customisable.
+- **Numbers**: none; no evaluation published.
+- **Admitted limitations / future work**: No limitations section. The page does not say what content types the summariser receives (the "text parts only; tool outputs and diffs dropped" fact in this project comes from the task description / code, not from this page). Kotlin variant cuts the window back so that no function call is summarised without its response.
+- **Relevance**: Policy under test; its closest published analogues are OpenHands LLMSummarizingCondenser (keep_first + recent events) and the "T3 summary-only" tier of Harness-Design.
+
