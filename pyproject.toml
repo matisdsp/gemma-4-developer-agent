@@ -1,0 +1,36 @@
+[project]
+name = "gemma-4-developer-agent"
+version = "0.1.0"
+description = "A Gemma 4 software engineering agent (declarative ADK config, prompts, skills, LoRA) for the Gemma 4 Developer Agent Kaggle competition, evaluated locally with the official harness."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "adk-eval-core",
+    "adk-submission",
+    "google-adk",
+    "pyyaml>=6.0",
+    "swegemma",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+# The official harness is only distributed as wheels on Kaggle (scripts/fetch_harness.sh).
+[tool.uv.sources]
+swegemma = { path = "vendor/wheels/swegemma-0.2.11-py3-none-any.whl" }
+adk-submission = { path = "vendor/wheels/adk_submission-0.2.13-py3-none-any.whl" }
+adk-eval-core = { path = "vendor/wheels/adk_eval_core-0.1.0-py3-none-any.whl" }
+google-adk = { path = "vendor/wheels/google_adk-1.36.1-py3-none-any.whl" }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/g4agent"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

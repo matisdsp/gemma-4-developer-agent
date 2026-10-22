@@ -1,0 +1,17 @@
+# Competition files (20 GB of repository snapshots) are not redistributed.
+data/
+# Official harness wheels, fetched from Kaggle by scripts/fetch_harness.sh.
+vendor/
+# Local artefacts: built archives, evaluation runs, LoRA training outputs.
+submissions/
+results/
+models/
+cache/
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.DS_Store
