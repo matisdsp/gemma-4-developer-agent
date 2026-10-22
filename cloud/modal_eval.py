@@ -38,6 +38,8 @@ KAGGLE_PINS = [
     "rich==13.9.4", "typing_extensions==4.15.0", "SQLAlchemy==2.0.49", "python-multipart==0.0.26",
     "requests==2.32.4", "urllib3==2.5.0", "httpx==0.28.1", "idna==3.13", "certifi==2026.4.22",
     "charset-normalizer==3.4.7", "orjson==3.11.8", "ujson==5.13.0", "Jinja2==3.1.6", "attrs==26.1.0",
+    # harness side: litellm 1.106 on PyPI needs an mcp that google-adk 1.36 cannot import
+    "litellm==1.82.4", "mcp==1.27.0", "openai==2.32.0", "jiter==0.10.0", "tiktoken==0.12.0",
 ]
 
 image = (
@@ -101,6 +103,7 @@ def run_cpu(run_py: str, run_id: str) -> str:
 def env_check() -> str:
     code = ("import torch, vllm, swegemma, adk_submission, google.adk, litellm, inline_snapshot, "
             "pytest, starlette; import vllm.entrypoints.openai.api_server; "
+            "from google.adk.models.lite_llm import LiteLlm; import litellm.main; "
             "print(torch.__version__, torch.version.cuda, vllm.__version__, google.adk.__version__, "
             "starlette.__version__)")
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=False)

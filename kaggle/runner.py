@@ -228,12 +228,13 @@ def decode_bench():
 async def run_jobs(jobs, concurrency, deadline):
     sem = asyncio.Semaphore(concurrency)
     done = 0
+    broken = []  # fail fast when the stack is broken (no tool call at all in the first jobs)
 
     async def one(job):
         nonlocal done
         variant, evaluator, task, rep, rdir = job
         async with sem:
-            if time.time() > deadline:
+            if time.time() > deadline or (len(broken) >= 4 and all(broken[:4])):
                 return
             from swegemma.context import SwegemmaContext
             ctx = SwegemmaContext(
@@ -270,6 +271,8 @@ async def run_jobs(jobs, concurrency, deadline):
             with open(rdir / "results.jsonl", "a") as f:
                 f.write(json.dumps(rec) + "\n")
             done += 1
+            if CONFIG["mode"] == "agent":
+                broken.append(not rec.get("tool_calls") and not rec.get("patch_chars"))
             log(f"{done}/{len(jobs)} {variant} {task.instance_id} r{rep} "
                 f"resolved={rec.get('resolved')} patch={rec.get('patch_chars')} "
                 f"calls={rec.get('tool_calls')} agent={rec.get('agent_s')}s wall={rec['wall_s']}s "
