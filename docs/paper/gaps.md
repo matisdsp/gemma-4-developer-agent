@@ -11,7 +11,7 @@ Verification method: six reading passes (about 260 fiches), a systematic arXiv s
 gap, and the paper-track forum (31 topics), whose announced entries are the most direct
 collision risk because writeups stay hidden until the deadline.
 
-Our own measurements quoted below (all reproducible, scripts listed in `proposals.md`):
+Our own measurements quoted below (all reproducible; scripts and how to run them in `analysis/README.md`):
 
 - **M1, decode latency vs batch size on a laptop** (Mac M4 Pro, mlx-lm 0.32.2, 4-bit, median of
   3, ms per decode step): E2B 9.0 / 9.0 / 11.6 / 20.3 / 32.8 and E4B 14.9 / 16.0 / 22.0 / 37.9 /
