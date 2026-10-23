@@ -101,6 +101,23 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   31B's capability gap in this harness is a protocol defect, which bears directly on the size arm
   of direction 1 and on G8 (action-format effects for open models, cf. the vLLM Gemma 4 parser
   issue 39043 and the practitioner report of empty tool calls, grey-literature Gemma 4 fiche in `literature.md` section 2).
+  **Settled 2026-10-23, CPU only** (`scripts/edit_arg_failures.py`): the cause is mainly the model,
+  and the parser fails silently. Of 190 failing edit_file calls across all Modal runs (1,082 parse
+  fine):
+  - 148 contain the next key swallowed into a value right after a backtick
+    (`` ...border_style)`,old_string: ``): the model opens the string with Gemma's `<|"|>`
+    delimiter but closes it with a backtick;
+  - 6 are the same with a plain `"`;
+  - 34 never open the value with `<|"|>` at all, so the parser's bare-value branch splits the code
+    at `:` into junk keys;
+  - 2 simply lack the argument.
+  vLLM 0.19.1's `_parse_gemma4_args` pairs `<|"|>` tokens strictly. Fed the observed pattern, it
+  reproduces the trace exactly: `new_string` ends in `` `,old_string: ``, and the old code becomes
+  a key named `if title_text is not None`. It raises no error, so the agent sees only a missing
+  parameter.
+  Hypothesis for the loop (untested): the chat template re-serialises the broken call, junk keys
+  included, into the history, and the model copies it.
+  The heredoc fallback of `variants/v5` sidesteps the format and cuts these calls by about 70 %.
 
 ## G1. Test-time scaling has never been costed in wall-clock on single-user hardware
 
