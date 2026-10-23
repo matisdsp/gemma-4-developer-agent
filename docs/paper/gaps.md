@@ -69,6 +69,18 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   one L4, about twice E4B's. On single-user hardware at this budget the larger model is
   time-bound, not capability-bound. Cost about 1.2 $ (estimate).
 
+- **M9, the 31B's edit calls lose an argument on the scorer's stack** (score agent, Modal L40S
+  TP1, vLLM 0.19.1 wheelhouse with the gemma4 tool parser, 2026-10-23; ledger entries
+  "modal-31b-v1v3-b" and "modal-31b-v4"): `edit_file` arrives without `old_string` in 50/94 (v1),
+  31/60 (v3) and 52/75 (v4) calls, against 6/165 and 6/154 for E4B (A0, A1) and 0/19 for 12B. The
+  failures concentrate on edits whose code holds regexes or quoted strings; the model then loops on
+  the same broken call until the time cap, often ending with no patch (6-8 of about 30 attempts per
+  variant affected). Still open: whether the model omits the argument or the parser drops it (the
+  trace does not keep the raw completion). If the parser drops it, part of what looks like the
+  31B's capability gap in this harness is a protocol defect, which bears directly on the size arm
+  of direction 1 and on G8 (action-format effects for open models, cf. the vLLM Gemma 4 parser
+  issue 39043 and the practitioner report of empty tool calls in `literature.md` 2.10).
+
 ## G1. Test-time scaling has never been costed in wall-clock on single-user hardware
 
 **What is open.** Every test-time-scaling result for SWE agents prices extra samples in tokens or
