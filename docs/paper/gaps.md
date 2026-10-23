@@ -79,7 +79,7 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   trace does not keep the raw completion). If the parser drops it, part of what looks like the
   31B's capability gap in this harness is a protocol defect, which bears directly on the size arm
   of direction 1 and on G8 (action-format effects for open models, cf. the vLLM Gemma 4 parser
-  issue 39043 and the practitioner report of empty tool calls in `literature.md` 2.10).
+  issue 39043 and the practitioner report of empty tool calls, grey-literature Gemma 4 fiche in `literature.md` section 2).
 
 ## G1. Test-time scaling has never been costed in wall-clock on single-user hardware
 
