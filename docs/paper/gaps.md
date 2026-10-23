@@ -69,6 +69,27 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   one L4, about twice E4B's. On single-user hardware at this budget the larger model is
   time-bound, not capability-bound. Cost about 1.2 $ (estimate).
 
+- **M7b, run 1 of direction 1: A0 vs A1 at r = 4 on the 40-task pool** (Modal 1xL4 TP1, image
+  pinned to the Kaggle notebook, concurrency 8, 2026-10-22/23; the 122 attempts of M7 completed by
+  198 more in run `a0a1-r4`, same commits, so 160 attempts per arm, every (task, arm, rep) present).
+  A0 `variants/e4b` 11/160 resolved (6.9 %), 5 tasks ever solved; A1 `variants/e4b-v2` 15/160
+  (9.4 %), 8 tasks ever solved. Paired on per-task success frequency: A1 better on 5 tasks
+  (fastapi_14077 2/4 vs 0/4, fastapi_14794, rich_3472, rich_3535, rich_4077), A0 better on 1
+  (fastapi_14458 2/4 vs 0/4), sign test p = 0.22. The M7 effect shrinks with more repeats (from
+  2x to 1.4x) but keeps its sign. Mixed tasks (0 < successes < 4): A0 3 (fastapi_14458,
+  rich_3454 3/4, rich_2725, rich_4077), A1 6. A1 also spends the idle budget: mean agent time 256 s
+  vs 216 s, 33 vs 20 attempts at the 7-min cap. Cost about 2.8 $ for the 198 new attempts.
+  Raw data: `results/modal/a0a1-r2` and `results/modal/a0a1-r4` (per attempt: patch, test log, ATIF
+  trace, agent seconds).
+
+- **M10, the 31B levers measured on Modal L40S** (score agent, 2026-10-23, paired on the same
+  tasks): v1 11/31; v3 (A1's forced verification ported to 31B) 8/30, losing 2 tasks and winning
+  none; v4 (first edit by call 8, get_status time checks, thinking 2048) 8/31, losing 3 and winning
+  none; v5 (v1 + quoted-heredoc fallback when edit_file loses an argument) on the 10 tasks hit by
+  M9: 3/10 like v1, missing-argument calls down from 49 to 14. The 31B is time-bound (about 40 %
+  of attempts end at the 7-min cap without a patch, at roughly 20 s per call with 6 concurrent
+  jobs), so A1's depth lever, which pays on E4B's idle budget, costs the 31B the time it lacks.
+
 - **M9, the 31B's edit calls lose an argument on the scorer's stack** (score agent, Modal L40S
   TP1, vLLM 0.19.1 wheelhouse with the gemma4 tool parser, 2026-10-23; ledger entries
   "modal-31b-v1v3-b" and "modal-31b-v4"): `edit_file` arrives without `old_string` in 50/94 (v1),
