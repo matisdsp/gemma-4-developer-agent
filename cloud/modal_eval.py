@@ -94,6 +94,14 @@ def run_gpu(run_py: str, run_id: str) -> str:
     return _run(run_py, run_id)
 
 
+# 31B (18 GB of int4 weights) does not leave room for a 32k KV cache on one L4: one L40S (48 GB).
+# Decoding is faster than the scorer's 4xL4, so per-task time caps bind less: compare variants
+# relative to each other, not to the scorer's absolute times.
+@app.function(gpu="L40S", cpu=8, memory=32768, timeout=3 * 3600, volumes={"/data": volume})
+def run_gpu_big(run_py: str, run_id: str) -> str:
+    return _run(run_py, run_id)
+
+
 @app.function(cpu=8, memory=16384, timeout=3 * 3600, volumes={"/data": volume})
 def run_cpu(run_py: str, run_id: str) -> str:
     return _run(run_py, run_id)
@@ -111,10 +119,11 @@ def env_check() -> str:
 
 
 @app.local_entrypoint()
-def main(run: str = "", run_id: str = "", cpu_only: bool = False, check: bool = False):
+def main(run: str = "", run_id: str = "", cpu_only: bool = False, check: bool = False,
+         big: bool = False):
     if check:
         print(env_check.remote())
         return
     text = Path(run).read_text()
-    fn = run_cpu if cpu_only else run_gpu
+    fn = run_cpu if cpu_only else (run_gpu_big if big else run_gpu)
     print(fn.remote(text, run_id))
