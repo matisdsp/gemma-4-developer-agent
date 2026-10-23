@@ -1,0 +1,120 @@
+{
+ "what": "Exact configuration of each Modal run. run.py is the file executed in the container: CONFIG (variant files verbatim, task list, repeats, concurrency, deadline) followed by kaggle/runner.py as of the runner commit.",
+ "image": "cloud/modal_eval.py (Python 3.12, competition wheelhouse incl. vLLM 0.19.1+cu128, torch 2.10.0+cu128, test extras, versions pinned to cloud/kaggle_image_freeze.txt)",
+ "vllm_flags": [
+  "--host 127.0.0.1",
+  "--port 8000",
+  "--max-model-len 32768",
+  "--dtype bfloat16",
+  "--gpu-memory-utilization 0.90",
+  "--tensor-parallel-size 1",
+  "--enable-auto-tool-choice",
+  "--tool-call-parser gemma4",
+  "--reasoning-parser gemma4",
+  "--reasoning-config (adk_submission default for gemma4: <|channel> ... <channel|>)",
+  "--no-scheduler-reserve-full-isl",
+  "enable_lora false"
+ ],
+ "harness": {
+  "sandbox": "subprocess",
+  "events_compaction": "interval 15, overlap 2, token_threshold 14336, retention 5",
+  "context_cache": "min_tokens 2048, ttl 1800 s, intervals 10",
+  "verification_timeout_s": 300
+ },
+ "sampling": "from each variant's configs/sampling.yaml through ADK/LiteLLM: temperature, top_p, max_output_tokens -> max_tokens, thinking_budget -> extra_body thinking_token_budget with enable_thinking true, include_thoughts true",
+ "task_selection": "gold_ok.txt = public tasks whose reference patch passes in the Kaggle subprocess sandbox (no agent involved). eval_calib_14 = 14 of them drawn with random.Random(7) before any E4B run. modal_pool_40 = calib_14 + 26 more gold_ok tasks drawn with random.Random(1023), fixed on 2026-10-22 ~20:20 UTC before any Modal agent run; no task was added or dropped on outcomes.",
+ "runs": {
+  "a0a1-r2": {
+   "launched_utc": "2026-10-22T21:12",
+   "platform": "Modal 1xL4",
+   "runner_commit": "e95adf4",
+   "modal_app_commit": "b17dd7b",
+   "variants": {
+    "e4b": "4242376",
+    "e4b-v2": "e9bfad6"
+   },
+   "tasks": "reports/modal_pool_40.txt",
+   "repeats": 2,
+   "concurrency": 8,
+   "note": "interrupted at 122/160 by the Mac crash",
+   "run_py": "reports/runs/a0a1-r2/run.py",
+   "run_py_sha256": "ba8477cb861bbfcfc7f2d0c197f17fab35183a93f7269287212a864a4b4ef4ea"
+  },
+  "a0a1-r4": {
+   "launched_utc": "2026-10-23T10:19",
+   "platform": "Modal 1xL4",
+   "runner_commit": "7b11402",
+   "modal_app_commit": "9b3ff71 (image identical to b17dd7b; only an L40S function added)",
+   "variants": {
+    "e4b": "4242376",
+    "e4b-v2": "e9bfad6"
+   },
+   "tasks": "reports/modal_pool_40.txt",
+   "repeats": 4,
+   "concurrency": 8,
+   "note": "the 198 attempts missing from a0a1-r2 (--skip-done)",
+   "run_py": "reports/runs/a0a1-r4/run.py",
+   "run_py_sha256": "745aa696ca2ef9b3fd4524cbf75d93b9bbc3285c3591ee3f53debad25743b0bd"
+  },
+  "12b-r4": {
+   "launched_utc": "2026-10-23T08:12",
+   "platform": "Modal 1xL4",
+   "runner_commit": "e95adf4",
+   "modal_app_commit": "b17dd7b",
+   "variants": {
+    "12b": "a1cf310"
+   },
+   "extra_vllm": "--hf-overrides {\"architectures\": [\"Gemma4ForCausalLM\"], \"model_type\": \"gemma4\"}",
+   "tasks": "reports/eval_calib_14.txt",
+   "repeats": 4,
+   "concurrency": 6,
+   "note": "stopped at 36/56",
+   "run_py": "reports/runs/12b-r4/run.py",
+   "run_py_sha256": "f14237982a82f0d955c55f3086466bfd417a5e85666b970bf45a59e5721ce417"
+  },
+  "31b-v1v3-b": {
+   "launched_utc": "2026-10-23T09:09",
+   "platform": "Modal 1xL40S",
+   "runner_commit": "e95adf4",
+   "modal_app_commit": "9b3ff71",
+   "variants": {
+    "v1": "61a2f34 (agent/)",
+    "v3": "variants/v3"
+   },
+   "tasks": "reports/modal_pool_40.txt",
+   "repeats": 1,
+   "concurrency": 6,
+   "note": "deadline 1.1 h, 61/80",
+   "run_py": "reports/runs/31b-v1v3-b/run.py",
+   "run_py_sha256": "e138c71fbc35229b1e49a0e6081bb5ea4395f347445f49531ae66cfa5fa55365"
+  },
+  "31b-v4": {
+   "launched_utc": "2026-10-23T10:20",
+   "platform": "Modal 1xL40S",
+   "runner_commit": "7b11402",
+   "modal_app_commit": "9b3ff71",
+   "variants": {
+    "v4": "db6c377"
+   },
+   "tasks": "reports/modal_31b_v1_tasks31.txt",
+   "repeats": 1,
+   "concurrency": 6,
+   "run_py": "reports/runs/31b-v4/run.py",
+   "run_py_sha256": "72f544cc8666dc4a8531ad34470c2e376850609e225d3890ef941cb1ae570248"
+  },
+  "31b-v5": {
+   "launched_utc": "2026-10-23T11:02",
+   "platform": "Modal 1xL40S",
+   "runner_commit": "7b11402",
+   "modal_app_commit": "9b3ff71",
+   "variants": {
+    "v5": "7eb9cb1"
+   },
+   "tasks": "reports/modal_31b_editfail10.txt",
+   "repeats": 1,
+   "concurrency": 5,
+   "run_py": "reports/runs/31b-v5/run.py",
+   "run_py_sha256": "e58ecd9b93903196b72918df4b0f83a822fc184ea4dfaea2b277f9d6ae573230"
+  }
+ }
+}
