@@ -96,9 +96,9 @@ attempts selected by that verification.* Pre-registration on 26/10: H1-H3 as res
 pytest clean, then smallest patch) as the primary selector and S1 as secondary, the analysis
 scripts `analysis/allocation/passk.py` and `selectors.py` with their sha256, and the run
 manifest `reports/runs/manifest.json` (exact run.py files, commits, vLLM flags, task-pool
-draws with fixed seeds, chosen before any Modal agent run). The confirmatory run: A1 x 4 on 40
-fresh gold-scorable public tasks not in the 40-task pool, on Modal (about 3 $, coordinator's
-approval needed).
+draws with fixed seeds, chosen before any Modal agent run). The confirmatory run: A1 x 4 on the 35
+gold-scorable public tasks outside the 40-task pool (gold_ok has 75), on Modal (about 2.5 $,
+coordinator's approval needed).
 
 ### Lock decision (2026-10-23): direction 1 is locked; direction 3 is not needed
 
