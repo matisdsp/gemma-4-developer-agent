@@ -84,10 +84,21 @@ The thesis sharpens into a budget-regime result, still direction 1:
   tool format (M9), which a format fallback partly fixes.
 - **Size (12B) on one L4:** more coverage, but time-bound at 7 minutes (M8).
 
+Selection result (gaps.md M11): with S1 (agent's own last pytest clean), width on top of A1
+reaches 6.0 expected tasks at k = 4 against 3.75 for one A1 attempt and 2.75 for one A0 attempt,
+recovering about 55% of the random-to-oracle gap; a post-hoc variant (own repro OR pytest) reaches
+7.0 and is the selector to pre-register and confirm on fresh tasks. Weak point to state in the
+paper: only 8 of 40 tasks are ever solved by A1, so every interval is wide.
+
 Revised claim for the paper: *how to spend extra wall-clock depends on whether the agent is
 idle-bound or time-bound; for small idle-bound agents, verification first, then a few parallel
-attempts selected by that verification.* Next analysis (CPU only, no spend): selector S1' = the
-A1 attempt whose own repro and nearest test passed, evaluated on the 160 saved A1 attempts.
+attempts selected by that verification.* Pre-registration on 26/10: H1-H3 as restated, the arms, selector S1any (own repro OR last
+pytest clean, then smallest patch) as the primary selector and S1 as secondary, the analysis
+scripts `analysis/allocation/passk.py` and `selectors.py` with their sha256, and the run
+manifest `reports/runs/manifest.json` (exact run.py files, commits, vLLM flags, task-pool
+draws with fixed seeds, chosen before any Modal agent run). The confirmatory run: A1 x 4 on 40
+fresh gold-scorable public tasks not in the 40-task pool, on Modal (about 3 $, coordinator's
+approval needed).
 
 ### Lock decision (2026-10-23): direction 1 is locked; direction 3 is not needed
 

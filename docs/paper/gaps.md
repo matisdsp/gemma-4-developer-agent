@@ -91,6 +91,20 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   of A1 as on top of A0. Depth makes width pay. Paired A1 - A0 on expected per-task success: +1.00
   task (90% interval -0.25 to +2.25), permutation p = 0.40; 5 tasks better under A1, 1 under A0.
 
+- **M11, selection at k <= 4 from the agent's own checks** (CPU only,
+  `analysis/allocation/selectors.py`, on the M7b attempts; selectors see only what the agent saw).
+  Expected resolved tasks out of 40 at k = 2 / 3 / 4, A1: oracle (pass@k) 5.67 / 7.00 / 8.00,
+  random 3.75, S1 (last pytest clean, then smallest non-empty patch; pre-specified) 4.83 / 5.50 /
+  6.00, i.e. 53-57% of the gap between random and oracle, 75-85% of the oracle in raw terms;
+  agreement between diffs (S2) does not help at k = 4. A post-hoc rule (own repro passed OR last
+  pytest clean) reaches 5.00 / 6.00 / 7.00 (65-76% of the gap) and must be confirmed on fresh
+  data. A0 with S1: 3.50 / 3.75 / 4.00 against oracle 5.00 at k = 4. The per-attempt flags are
+  weak (precision 0.17-0.31 against a 9.4% base rate): the gain comes from discarding the ~72%
+  of attempts that fail their own tests. A1's "mandatory" reproduction script was run in only
+  37/160 attempts and almost never failed before the edit, so the verification signal is mostly
+  pytest. Intervals are wide: only 8 of 40 tasks have any resolved A1 attempt (oracle - S1 at
+  k = 4: 2.0, 90% interval 0 to 4).
+
 - **M10, the 31B levers measured on Modal L40S** (score agent, 2026-10-23, paired on the same
   tasks): v1 11/31; v3 (A1's forced verification ported to 31B) 8/30, losing 2 tasks and winning
   none; v4 (first edit by call 8, get_status time checks, thinking 2048) 8/31, losing 3 and winning
