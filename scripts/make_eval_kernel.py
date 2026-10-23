@@ -45,6 +45,8 @@ def main() -> None:
     ap.add_argument("--deadline-hours", type=float, default=10.5)
     ap.add_argument("--slug", default="g4agent-eval")
     ap.add_argument("--bench", action="store_true", help="decode microbenchmark after startup")
+    ap.add_argument("--skip-done", type=Path, action="append", default=[],
+                    help="results.jsonl of an earlier run: attempts already in it are not rerun")
     args = ap.parse_args()
 
     variants = dict(v.split("=", 1) for v in (args.variant or ["v1=agent"]))
@@ -58,6 +60,13 @@ def main() -> None:
         "deadline_hours": args.deadline_hours,
         "bench": args.bench,
     }
+    if args.skip_done:
+        done = {(r["variant"], r["instance_id"], r["rep"])
+                for f in args.skip_done for r in map(json.loads, f.read_text().splitlines()) if r}
+        ids = config["task_ids"] or []
+        config["only"] = [[v, t, rep] for rep in range(args.repeats) for t in ids for v in variants
+                          if (v, t, rep) not in done]
+        print(f"{len(config['only'])} attempts to run after skipping {len(done)} done")
     out = SUBMISSIONS / args.slug
     out.mkdir(parents=True, exist_ok=True)
     runner = (ROOT / "kaggle" / "runner.py").read_text()

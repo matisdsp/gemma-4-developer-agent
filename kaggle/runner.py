@@ -344,10 +344,13 @@ def main():
             rdir.mkdir(parents=True, exist_ok=True)
             evs[name] = (Evaluator(make_config(d, models, data_dir, rdir)), rdir)
         jobs = []
+        only = {tuple(x) for x in CONFIG.get("only") or []}  # (variant, instance_id, rep) to run
         for rep in range(CONFIG.get("repeats", 1)):
             for t in tasks:
                 for name, (ev, rdir) in evs.items():
-                    jobs.append((name, ev, t, rep, rdir))
+                    if not only or (name, t.instance_id, rep) in only:
+                        jobs.append((name, ev, t, rep, rdir))
+        log(f"{len(jobs)} jobs")
         try:
             asyncio.run(run_jobs(jobs, CONFIG.get("concurrency", 2), deadline))
         finally:
