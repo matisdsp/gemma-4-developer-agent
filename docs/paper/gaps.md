@@ -39,6 +39,19 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   tasks the hidden test uses an identifier that the reference fix introduces; in 21 of them at
   least one such name is absent from the issue text, in 14 none is mentioned.
 
+- **M6, E4B's failures are systematic, not stochastic** (Mac pilot, 2026-10-22/23: official
+  harness, subprocess sandbox on macOS, E4B 4-bit served by mlx-lm, temperature 1.0, r = 4 on the
+  14 calibration tasks, 56 attempts, mean 296 s per attempt): pass@1 = 1.25 expected tasks,
+  pass@4 = 2 tasks. Only 2 tasks have mixed outcomes (rich_3454 2/4, fastapi_14786 3/4); the other
+  12 are never solved. They are the same two tasks solved on Kaggle 4xL4 (temperature 0.2) and on
+  Modal 1xL4, so the solved set is stable across three serving stacks and two temperatures.
+  41% of attempts (23/56) end with an empty patch; non-empty patches are diverse (on most tasks
+  every non-empty attempt differs) and 19/25 touch a file the reference fix touches: E4B usually
+  finds the right file and writes a wrong fix. Caveats: 14 tasks; the Mac stack differs from
+  the scorer (mlx-lm tool parsing, no thinking-budget control); temperature 1.0 may inflate empty
+  patches. The pilot's concurrent sandboxes are the likely cause of the Mac memory saturation of
+  2026-10-23 00:27; heavy runs belong on Modal.
+
 ## G1. Test-time scaling has never been costed in wall-clock on single-user hardware
 
 **What is open.** Every test-time-scaling result for SWE agents prices extra samples in tokens or
@@ -100,6 +113,10 @@ time), parallel samples (width in batch, G1), or verification. Which one pays fo
 open: FailFast-RestartSmart finds a cold restart worth +0.2 points and a restart with the old
 diff as overlay +5.2 (Qwen3.6-27B, 2608.03222), while SWE-Residual (2610.25899) finds that
 starting from a predecessor's failed work costs 20.6-53.5 points.
+
+**First answer for E4B (M6).** Width cannot pay on the calibration tasks: 12 of 14 are never
+solved in 4 attempts at temperature 1.0, on any of three stacks. What remains open for a 4B model
+is whether depth (forced verification) or a larger model converts the idle budget.
 
 **Not closed.** No paper in the sweep studies under-use of a time budget by small SWE agents;
 the budget papers it lists (2607.19338 CodeRescue, 2609.38147 meta-reasoning under remaining

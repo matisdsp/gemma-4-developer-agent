@@ -43,6 +43,35 @@ leaderboard resolves only after the paper deadline. #3 is the fallback if #1's p
 fails on 2026-10-25. #4 becomes one paragraph of related evidence. #5 is not recommended for the
 paper.
 
+## Gate status on 2026-10-23 and final recommendation
+
+The Mac pilot (gaps.md M6) answered the width question for E4B early: on the 14 calibration
+tasks only 2 tasks have mixed outcomes at r = 4 (gate condition 3 needs 3), pass@4 = 2 against
+pass@1 = 1.25, and the solved set is identical on Kaggle, Modal and the Mac. E4B finds the right
+file in 19 of 25 non-empty patches and writes a wrong fix; 41% of its attempts submit nothing.
+Width (A3) is therefore dead for E4B on these tasks, and the gate's fallback applies: the larger
+model becomes the main subject of the width arm, and E4B becomes the paper's opening result
+(a small agent's idle budget is not convertible by sampling, because its errors are systematic).
+
+**Recommendation: lock direction 1 on 2026-10-26, in this form:** *what converts a small local
+agent's idle wall-clock into solved tasks?* Result 1 (in hand, to be confirmed on 40 tasks):
+width does not, for E4B. Result 2: does depth (A1 = `variants/e4b-v2`, forced
+reproduce-then-verify)? Result 3: does size (12B, one attempt in the same time) or width on 12B,
+if 12B's outcomes are heterogeneous? Every outcome is publishable because the question is
+practical for local users and the measurement is replicated across stacks.
+
+Two runs decide it before the lock, both on Modal (none on the Mac, whose memory saturated during
+the pilot):
+1. A0 (`variants/e4b`) vs A1 (`variants/e4b-v2`) on the 40-task pool, r = 2 (launched by the
+   score agent on 2026-10-22; status to confirm after the crash).
+2. Gemma 4 12B, r = 4, on the 14 calibration tasks (about 56 attempts, 1-3 $ on one L4):
+   heterogeneity (mixed tasks) and pass@1 against E4B.
+
+Lock rule: lock direction 1 if either run shows signal (A1 vs A0 with at least 3 more tasks won
+than lost, or 12B with at least 3 mixed tasks or a pass@1 at least 3 tasks above E4B). If both
+are flat, direction 1 still stands as a negative result only if E4B's systematic pattern holds
+on the 40-task pool (r = 2 from run 1 gives that for free); otherwise switch to direction 3.
+
 ## 1. Spending a small agent's idle wall-clock: depth, retry, width or size?
 
 Working title: *Idle Seconds: How a Small Local Coding Agent Should Spend a Fixed Wall-Clock
@@ -239,7 +268,7 @@ The agents run experiments overnight and on weekends; the author reviews and wri
 | Thu 22/10 | Literature, gaps, proposals; latency curves M1 on the Mac; Mac harness spike started | scout | |
 | Fri 23/10 | Mac harness scores the calibration tasks (gold check); first E4B attempts, r = 4 | scout agent | Mac harness works? |
 | Sat 24/10 | r = 4 on 12-14 tasks; offline S0/S1; Kaggle quota resets 00:00 | scout agent | |
-| Sun 25/10 | **Go/no-go gate** (three conditions in section 1): pipeline scores the 14 tasks; t(4)/t(1) <= 1.6; >= 3 mixed tasks at r = 4. Else 12B as main model, or #3 if the pipeline fails | Matis | go / adapt / switch |
+| Sun 25/10 | **Go/no-go**: Mac pilot done 23/10 (width dead for E4B, M6); decide on Modal A0 vs A1 (40 tasks) and 12B r = 4 (14 tasks), see "Gate status" | Matis | lock / switch |
 | **Mon 26/10** | **Topic locked**; pre-register H1-H3, arms, selectors and analysis script (hash in the repo); make more tasks Mac-scorable (inline_snapshot, local httpbin) | Matis + agents | locked |
 | 26/10-01/11 | Full Mac runs: A3 (E4B, r = 8) and A0/A1/A2 (E4B, r = 4) on all Mac-scorable tasks, A4 (12B, r = 4); end-to-end t(b); selectors S0-S3 frozen | agents | |
 | by 01/11 | Scorer anchor (if quota/Modal allows): e4b-k (sequential A3, k = 4 + S1) on the 14 calibration tasks on 4xL4, plus the 2-minute l(b) microbenchmark | score agent | offline best@k vs real agent |
