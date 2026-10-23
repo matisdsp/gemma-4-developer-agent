@@ -1,0 +1,8 @@
+# Per-task budgets. Hidden tasks run one after another and the whole run must finish in 12 h
+# (~120 tasks). 7 min / 28 calls is the community-proven envelope (8 min / 28 calls finished,
+# 12 min did not); most tasks stop at the call cap or submit early.
+evaluation:
+  timeout_seconds: 240
+  max_tool_calls: 28
+  max_time_minutes: 7
+  max_turns: 80
