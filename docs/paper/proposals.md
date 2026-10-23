@@ -60,6 +60,12 @@ reproduce-then-verify)? Result 3: does size (12B, one attempt in the same time) 
 if 12B's outcomes are heterogeneous? Every outcome is publishable because the question is
 practical for local users and the measurement is replicated across stacks.
 
+**Run 1 is in (gaps.md M7):** A1 beats A0 on 3 tasks and loses none (+2.5 expected tasks,
+90% interval +0.5 to +5.0, p = 0.25), and outcomes stay near-deterministic (1 mixed task out of
+20 with two repeats). That meets the lock rule's threshold for depth (3 more tasks won than lost)
+without being significant on its own. Run 2 (12B) was approved by the coordinator on 2026-10-23
+(cap 3 $) and launched by the score agent.
+
 Two runs decide it before the lock, both on Modal (none on the Mac, whose memory saturated during
 the pilot):
 1. A0 (`variants/e4b`) vs A1 (`variants/e4b-v2`) on the 40-task pool, r = 2 (launched by the

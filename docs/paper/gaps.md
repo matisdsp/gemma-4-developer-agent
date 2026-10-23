@@ -52,6 +52,14 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   patches. The pilot's concurrent sandboxes are the likely cause of the Mac memory saturation of
   2026-10-23 00:27; heavy runs belong on Modal.
 
+- **M7, depth helps E4B a little, width still does not** (Modal 1xL4, run by the score agent,
+  2026-10-22, interrupted by the Mac crash at 122/160 attempts: rep 0 complete for both arms, rep 1
+  partial): A0 `variants/e4b` 4/62 resolved, 2 tasks ever solved; A1 `variants/e4b-v2` (forced
+  reproduce-then-verify, thinking 4096) 8/60, 5 tasks ever solved. Paired on the 40 tasks: A1
+  wins 3 tasks, loses 0, +2.5 expected tasks (90% task-bootstrap interval +0.5 to +5.0),
+  permutation p = 0.25. Of the tasks with two repeats, 0/22 (A0) and 1/20 (A1) are mixed: the
+  solved set is again almost deterministic.
+
 ## G1. Test-time scaling has never been costed in wall-clock on single-user hardware
 
 **What is open.** Every test-time-scaling result for SWE agents prices extra samples in tokens or
