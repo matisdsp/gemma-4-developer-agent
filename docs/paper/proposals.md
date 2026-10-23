@@ -71,6 +71,24 @@ mixed tasks, but every attempt hits the 7-minute cap on one L4 and 28/36 end wit
 Pass@1 is about 3.1 expected tasks against 2 for E4B: below the lock rule's size threshold
 (+3 tasks).
 
+### Update after run 1 at r = 4 and the 31B levers (2026-10-23, gaps.md M7b, M7c, M9, M10)
+
+The thesis sharpens into a budget-regime result, still direction 1:
+- **Idle-bound agent (E4B):** depth (A1) helps modestly (15/160 vs 11/160, not significant) and,
+  more importantly, raises per-task heterogeneity, so width on top of depth buys coverage (pass@4
+  8.0 tasks for A1 vs 5.0 for A0, pass@1 2.75 for A0). The open question becomes selection at
+  k <= 4 using the signal A1 already produces (its own reproduction script and nearest-test
+  result), which can be measured offline from the saved traces at zero GPU cost.
+- **Time-bound agent (31B):** the same depth lever loses tasks (v3 8/30 vs v1 11/31, 2 lost, 0
+  won; M10), because the 31B has no idle budget to spend; and half of its edit calls break the
+  tool format (M9), which a format fallback partly fixes.
+- **Size (12B) on one L4:** more coverage, but time-bound at 7 minutes (M8).
+
+Revised claim for the paper: *how to spend extra wall-clock depends on whether the agent is
+idle-bound or time-bound; for small idle-bound agents, verification first, then a few parallel
+attempts selected by that verification.* Next analysis (CPU only, no spend): selector S1' = the
+A1 attempt whose own repro and nearest test passed, evaluated on the 160 saved A1 attempts.
+
 ### Lock decision (2026-10-23): direction 1 is locked; direction 3 is not needed
 
 The lock rule asked for a signal from either run. Depth gives one (A1: 3 tasks won, 0 lost, +2.5

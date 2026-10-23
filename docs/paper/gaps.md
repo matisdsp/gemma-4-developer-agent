@@ -82,6 +82,15 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   Raw data: `results/modal/a0a1-r2` and `results/modal/a0a1-r4` (per attempt: patch, test log, ATIF
   trace, agent seconds).
 
+- **M7c, heterogeneity at r = 4 on 40 tasks** (scout, `analysis/allocation/passk.py` on the M7b
+  data): outcomes are strongly but not fully correlated within a task (beta-binomial intra-task
+  correlation 0.60 for A0, 0.46 for A1). Unbiased pass@k, expected tasks out of 40: A0 2.75 /
+  3.83 / 4.50 / 5.00 for k = 1-4 (homogeneous prediction at k = 4: 9.92); A1 3.75 / 5.67 / 7.00 /
+  8.00 (homogeneous 13.02). So the 14-task Mac pilot (M6) was too small to see it: width does buy
+  coverage, about half of what independent attempts would give, and roughly twice as much on top
+  of A1 as on top of A0. Depth makes width pay. Paired A1 - A0 on expected per-task success: +1.00
+  task (90% interval -0.25 to +2.25), permutation p = 0.40; 5 tasks better under A1, 1 under A0.
+
 - **M10, the 31B levers measured on Modal L40S** (score agent, 2026-10-23, paired on the same
   tasks): v1 11/31; v3 (A1's forced verification ported to 31B) 8/30, losing 2 tasks and winning
   none; v4 (first edit by call 8, get_status time checks, thinking 2048) 8/31, losing 3 and winning
