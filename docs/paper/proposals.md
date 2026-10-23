@@ -66,7 +66,30 @@ practical for local users and the measurement is replicated across stacks.
 without being significant on its own. Run 2 (12B) was approved by the coordinator on 2026-10-23
 (cap 3 $) and launched by the score agent.
 
-Two runs decide it before the lock, both on Modal (none on the Mac, whose memory saturated during
+**Run 2 is in (gaps.md M8):** 12B solves 4 distinct calibration tasks against E4B's 2, with 2
+mixed tasks, but every attempt hits the 7-minute cap on one L4 and 28/36 end with no patch.
+Pass@1 is about 3.1 expected tasks against 2 for E4B: below the lock rule's size threshold
+(+3 tasks).
+
+### Lock decision (2026-10-23): direction 1 is locked; direction 3 is not needed
+
+The lock rule asked for a signal from either run. Depth gives one (A1: 3 tasks won, 0 lost, +2.5
+expected tasks on 40, p = 0.25); size gives a partial one (more coverage, but time-bound). With
+width already negative for E4B (M6, M7), the three arms point the same way and give the paper its
+thesis: **on single-user hardware, a small coding agent's idle seconds are best spent on
+verification (depth), not on more samples (its errors are systematic) or a bigger model (time-bound
+at the same budget).** The claims still to firm up, in priority order, each for Modal and only
+after the coordinator approves the spend:
+1. A0 vs A1 to r = 4 on the 40-task pool (the depth effect is not yet significant): about 160
+   more E4B attempts, 2-3 $.
+2. 12B at a longer cap (e.g. 15 min) on the 14 calibration tasks, r = 2: where size starts to pay
+   as time grows (the time-versus-coverage curve), about 1-1.5 $.
+3. A2 (informed retry) only if budget remains; width (A3) needs no more runs for E4B.
+Selectors (S0-S3) become a minor section: with systematic errors there is little to select from.
+The pre-registration (hypotheses, arms, analysis script `analysis/allocation/passk.py`, hash) is
+the first task of 26/10.
+
+Two runs decided it before the lock, both on Modal (none on the Mac, whose memory saturated during
 the pilot):
 1. A0 (`variants/e4b`) vs A1 (`variants/e4b-v2`) on the 40-task pool, r = 2 (launched by the
    score agent on 2026-10-22; status to confirm after the crash).

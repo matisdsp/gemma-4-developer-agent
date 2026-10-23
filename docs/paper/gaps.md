@@ -60,6 +60,15 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   permutation p = 0.25. Of the tasks with two repeats, 0/22 (A0) and 1/20 (A1) are mixed: the
   solved set is again almost deterministic.
 
+- **M8, size buys coverage but not time** (Modal 1xL4 TP1, 2026-10-23, `variants/12b` =
+  `variants/e4b` with the model swapped to Gemma 4 12B, temperature 0.2, concurrency 6; stopped at
+  36/56 attempts, reps 0-1 complete on all 14 calibration tasks): 8/36 resolved, 4 distinct tasks
+  solved at least once (rich_3454 3/3, fastapi_14786 3/3, rich_3882 1/2, rich_3067 1/2) against 2
+  for E4B; 2 mixed tasks. But all 36 attempts hit the 7-minute cap and 28/36 end without a patch:
+  12B decodes at 34.4 / 34.7 / 35.5 / 37.5 ms per step at 1 / 2 / 4 / 8 concurrent requests on
+  one L4, about twice E4B's. On single-user hardware at this budget the larger model is
+  time-bound, not capability-bound. Cost about 1.2 $ (estimate).
+
 ## G1. Test-time scaling has never been costed in wall-clock on single-user hardware
 
 **What is open.** Every test-time-scaling result for SWE agents prices extra samples in tokens or
