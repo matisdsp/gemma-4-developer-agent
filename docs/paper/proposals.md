@@ -205,6 +205,21 @@ same wall-clock.
   time and stragglers included). Null: measured times break the model (e.g. the server does not
   batch, or tool time dominates), which is itself the practical answer for local agents.
 
+**Draft restatement for the pre-registration (2026-10-24, to be confirmed by Matis on 26/10).**
+H1-H3 above were written for the Mac plan (r = 8, temperature 1.0, batched runs on the laptop).
+The confirmatory run is A1 x 4 on the 35 held-out gold-scorable tasks, on Modal, so they become:
+- **H1'.** A1's pass@4 exceeds its pass@1 on the 35 tasks, 90% task-bootstrap interval above
+  zero; the fitted beta-binomial intra-task correlation is reported with its interval, against
+  0.46 on the 40-task pool.
+- **H2'.** S1any (own repro passed OR last pytest clean, then smallest non-empty patch) gives
+  best@4 - pass@1 > 0 for A1, 90% interval above zero; S1 is secondary; S3 (LLM judge) is
+  reported as a control for a small judge only.
+- **H3'.** On one L4, end-to-end E4B attempt time at 4 concurrent attempts is at most 1.6x the
+  time at 1 (the old gate condition 2); if not, batched width is dropped and only sequential width
+  is claimed.
+- Not pre-registered, reported as exploratory: A1 vs A0 (A0 is not re-run on the held-out tasks),
+  A1 at thinking 2048 against A1 at 4096, and the time-bound 31B and 12B results (already seen).
+
 ### Method and protocol
 
 - **Sample once, analyse offline.** Per task: r = 8 attempts for A3 (temperature 1.0), r = 4 for
