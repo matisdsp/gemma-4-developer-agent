@@ -52,13 +52,14 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   patches. The pilot's concurrent sandboxes are the likely cause of the Mac memory saturation of
   2026-10-23 00:27; heavy runs belong on Modal.
 
-- **M7, depth helps E4B a little, width still does not** (Modal 1xL4, run by the score agent,
+- **M7, first partial run of A0 vs A1, superseded by M7b and M7c** (Modal 1xL4, run by the score agent,
   2026-10-22, interrupted by the Mac crash at 122/160 attempts: rep 0 complete for both arms, rep 1
   partial): A0 `variants/e4b` 4/62 resolved, 2 tasks ever solved; A1 `variants/e4b-v2` (forced
   reproduce-then-verify, thinking 4096) 8/60, 5 tasks ever solved. Paired on the 40 tasks: A1
   wins 3 tasks, loses 0, +2.5 expected tasks (90% task-bootstrap interval +0.5 to +5.0),
   permutation p = 0.25. Of the tasks with two repeats, 0/22 (A0) and 1/20 (A1) are mixed: the
-  solved set is again almost deterministic.
+  solved set is again almost deterministic. At r = 4 (M7b, M7c) the effect shrinks to +1.0 task
+  (p = 0.40) and outcomes are heterogeneous enough for width to pay.
 
 - **M8, size buys coverage but not time** (Modal 1xL4 TP1, 2026-10-23, `variants/12b` =
   `variants/e4b` with the model swapped to Gemma 4 12B, temperature 0.2, concurrency 6; stopped at
@@ -93,7 +94,7 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   3.83 / 4.50 / 5.00 for k = 1-4 (homogeneous prediction at k = 4: 9.92); A1 3.75 / 5.67 / 7.00 /
   8.00 (homogeneous 13.02). So the 14-task Mac pilot (M6) was too small to see it: width does buy
   coverage, about half of what independent attempts would give, and roughly twice as much on top
-  of A1 as on top of A0. Depth makes width pay. Paired A1 - A0 on expected per-task success: +1.00
+  of A1 as on top of A0. A1 makes width pay (depth and thinking together, see M7b). Paired A1 - A0 on expected per-task success: +1.00
   task (90% interval -0.25 to +2.25), permutation p = 0.40; 5 tasks better under A1, 1 under A0.
   Width here is r = 4 independent attempts at the submission temperature 0.2, not the
   temperature-1.0 sampling of the A3 protocol; whether 1.0 buys more coverage is untested on
@@ -212,9 +213,15 @@ open: FailFast-RestartSmart finds a cold restart worth +0.2 points and a restart
 diff as overlay +5.2 (Qwen3.6-27B, 2608.03222), while SWE-Residual (2610.25899) finds that
 starting from a predecessor's failed work costs 20.6-53.5 points.
 
-**First answer for E4B (M6).** Width cannot pay on the calibration tasks: 12 of 14 are never
-solved in 4 attempts at temperature 1.0, on any of three stacks. What remains open for a 4B model
-is whether depth (forced verification) or a larger model converts the idle budget.
+**First answer for E4B (M6, revised by M7c and M11).** The 14-task Mac pilot suggested width
+cannot pay: 12 of 14 calibration tasks are never solved in 4 attempts at temperature 1.0, on any
+of three stacks. On the 40-task pool at r = 4 it does pay, at about half the rate of independent
+attempts and about twice as much on top of depth (A1, pass@4 8.0 tasks) as on the baseline (A0,
+5.0); a selector built on the agent's own checks keeps most of that gain (M11). Depth alone helps
+modestly (+1.0 task, p = 0.40) and is confounded with a larger thinking budget (M7b). A larger
+model does not convert the budget on one L4: 12B is time-bound at 7 minutes (M8). What remains
+open is the split of the idle budget between depth and width, and what A1's gain owes to
+verification rather than thinking.
 
 **Not closed.** No paper in the sweep studies under-use of a time budget by small SWE agents;
 the budget papers it lists (2607.19338 CodeRescue, 2609.38147 meta-reasoning under remaining
