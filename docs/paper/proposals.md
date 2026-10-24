@@ -2,7 +2,7 @@
 
 Deadline 2026-11-12 23:59 UTC, 3,000 words, five criteria at equal weight (novelty, generality,
 relevance, verifiability, clarity). Topic to be locked by **2026-10-26**. Evidence for every claim
-below is in `gaps.md` (G1-G10, measurements M1-M5) and `literature.md`.
+below is in `gaps.md` (G1-G10, measurements M1-M11) and `literature.md`.
 
 ## Constraints that drive the ranking
 
@@ -45,6 +45,17 @@ paper.
 
 ## Gate status on 2026-10-23 and final recommendation
 
+**Read first (2026-10-24).** This section is a log in date order, and its early paragraphs
+were overtaken the same afternoon. The current thesis is the one in "Update after run 1 at
+r = 4" below: *how to spend extra wall-clock depends on whether the agent is idle-bound or
+time-bound; for small idle-bound agents, verification first, then a few parallel attempts
+selected by that verification.* Superseded, and marked where they appear:
+- "width is dead for E4B" (14-task Mac pilot, M6): on the 40-task pool at r = 4 width pays,
+  pass@4 8.0 tasks on top of A1 against 5.0 on A0 (M7c);
+- the depth effect +2.5 tasks, p = 0.25 (r = 2, M7): at r = 4 it is +1.0 task, 90% interval
+  -0.25 to +2.25, p = 0.40 (M7c), and A1 also doubles the thinking budget (M7b);
+- "selectors become a minor section": selection at k <= 4 is now a main result (M11).
+
 The Mac pilot (gaps.md M6) answered the width question for E4B early: on the 14 calibration
 tasks only 2 tasks have mixed outcomes at r = 4 (gate condition 3 needs 3), pass@4 = 2 against
 pass@1 = 1.25, and the solved set is identical on Kaggle, Modal and the Mac. E4B finds the right
@@ -52,10 +63,11 @@ file in 19 of 25 non-empty patches and writes a wrong fix; 41% of its attempts s
 Width (A3) is therefore dead for E4B on these tasks, and the gate's fallback applies: the larger
 model becomes the main subject of the width arm, and E4B becomes the paper's opening result
 (a small agent's idle budget is not convertible by sampling, because its errors are systematic).
+*[Superseded: on 40 tasks at r = 4 width pays for E4B, M7c.]*
 
 **Recommendation: lock direction 1 on 2026-10-26, in this form:** *what converts a small local
 agent's idle wall-clock into solved tasks?* Result 1 (in hand, to be confirmed on 40 tasks):
-width does not, for E4B. Result 2: does depth (A1 = `variants/e4b-v2`, forced
+width does not, for E4B. *[Not confirmed: on 40 tasks it does, M7c.]* Result 2: does depth (A1 = `variants/e4b-v2`, forced
 reproduce-then-verify)? Result 3: does size (12B, one attempt in the same time) or width on 12B,
 if 12B's outcomes are heterogeneous? Every outcome is publishable because the question is
 practical for local users and the measurement is replicated across stacks.
@@ -63,7 +75,8 @@ practical for local users and the measurement is replicated across stacks.
 **Run 1 is in (gaps.md M7):** A1 beats A0 on 3 tasks and loses none (+2.5 expected tasks,
 90% interval +0.5 to +5.0, p = 0.25), and outcomes stay near-deterministic (1 mixed task out of
 20 with two repeats). That meets the lock rule's threshold for depth (3 more tasks won than lost)
-without being significant on its own. Run 2 (12B) was approved by the coordinator on 2026-10-23
+without being significant on its own. *[r = 2. At r = 4: 5 tasks better, 1 worse, +1.0 task,
+p = 0.40, M7b and M7c.]* Run 2 (12B) was approved by the coordinator on 2026-10-23
 (cap 3 $) and launched by the score agent.
 
 **Run 2 is in (gaps.md M8):** 12B solves 4 distinct calibration tasks against E4B's 2, with 2
@@ -83,6 +96,8 @@ The thesis sharpens into a budget-regime result, still direction 1:
   won; M10), because the 31B has no idle budget to spend; and half of its edit calls break the
   tool format (M9), which a format fallback partly fixes.
 - **Size (12B) on one L4:** more coverage, but time-bound at 7 minutes (M8).
+- **Confound (found 2026-10-24):** A1 changes the prompt and raises `thinking_budget` from 2048
+  to 4096 (M7b). Until A1 runs at thinking 2048, "depth" means verification plus thinking.
 
 Selection result (gaps.md M11): with S1 (agent's own last pytest clean), width on top of A1
 reaches 6.0 expected tasks at k = 4 against 3.75 for one A1 attempt and 2.75 for one A0 attempt,
@@ -107,14 +122,17 @@ expected tasks on 40, p = 0.25); size gives a partial one (more coverage, but ti
 width already negative for E4B (M6, M7), the three arms point the same way and give the paper its
 thesis: **on single-user hardware, a small coding agent's idle seconds are best spent on
 verification (depth), not on more samples (its errors are systematic) or a bigger model (time-bound
-at the same budget).** The claims still to firm up, in priority order, each for Modal and only
-after the coordinator approves the spend:
+at the same budget).** *[Superseded the same day by the update above: width pays on top of
+A1, and selection by A1's own checks keeps most of that gain.]* The claims still to firm up, in
+priority order, each for Modal and only after the coordinator approves the spend:
 1. A0 vs A1 to r = 4 on the 40-task pool (the depth effect is not yet significant): about 160
-   more E4B attempts, 2-3 $.
+   more E4B attempts, 2-3 $. *[Done: M7b.]*
 2. 12B at a longer cap (e.g. 15 min) on the 14 calibration tasks, r = 2: where size starts to pay
-   as time grows (the time-versus-coverage curve), about 1-1.5 $.
+   as time grows (the time-versus-coverage curve), about 1-1.5 $. *[Deferred to the Modal
+   credits of 1 November.]*
 3. A2 (informed retry) only if budget remains; width (A3) needs no more runs for E4B.
 Selectors (S0-S3) become a minor section: with systematic errors there is little to select from.
+*[Both superseded: width and selection are now the core of the E4B result (M7c, M11).]*
 The pre-registration (hypotheses, arms, analysis script `analysis/allocation/passk.py`, hash) is
 the first task of 26/10.
 
