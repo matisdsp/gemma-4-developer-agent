@@ -184,9 +184,10 @@ sweep (1,217 relevant papers triaged) return no SWE-agent paper that allocates a
 budget across depth, retry, width and model size on single-user hardware. Closest items, read:
 Risa (2608.22191, Appendix I.1: an n = 16 step costs about 2x one step on its vLLM server, a
 side remark), Latency and Token-Aware TTC (2509.09864, single-turn math on one A100, coding left
-as future work), SPLIT (2610.23255, 2026-10-16, allocates among sampling, model mixing and
-verification under imperfect verifiers, with latency as one possible cost, no batching, no
-depth or retry), SquidAgent (2610.08647, wall-clock criterion for parallelising agent layers),
+as future work), SPLIT (2610.23255, 2026-10-16, read in full: allocates among sampling, model
+mixing and verification under imperfect verifiers; prices samples by compute or a latency-like
+exponent but models latency as additive and "ignores parallel sampling"; its one agentic setting
+is SWE-bench rollouts of a 32B agent, with no wall-clock cap, depth or retry), SquidAgent (2610.08647, wall-clock criterion for parallelising agent layers),
 Inference-Time Amplification of Weak Reasoning Models (2605.14163, GPT-5.4 nano, 8 proposals,
 API tokens), Kozuchi (2608.15579), On the Clock (2610.10833).
 
@@ -249,8 +250,13 @@ nor how much of the coverage gain it keeps.
 **Not closed.** The 2026 selection papers in the sweep use k >= 8 or a trained or frontier
 verifier: 2605.14163 (critic-comparator over 8 proposals, 67.0% to 76.4% for GPT-5.4 nano),
 2610.03984 (trained self-verification, eight samples), 2610.10242 (TestGRAD, evolved test
-suites over an ensemble), 2608.15579. SPLIT (2610.23255) gives a model of selection under
-imperfect, correlated verifiers that we can reuse to analyse k <= 4.
+suites over an ensemble), 2608.15579. SPLIT (2610.23255) gives the formal frame: with
+accept/reject selection, S_N = (a/s)(1 - (1 - s)^N), and at small N verified success is at most
+N x E[FPR] below TPR-thinned coverage. On SWE-bench (one 32B agent, LLM patch verifier) a
+threshold costs resolve rate at N = 1 (32.5% to 25.1%) and helps from N = 4. It reports no
+own-test selector at k <= 4 and does not model S1's smallest-patch tie-break, a selector that
+must always submit, or diff agreement; its LLM verifier helps a 32B agent, so S3 as a negative
+control is a claim about a small judge only.
 
 ## G4. Selection on noise: best-of-resubmissions on small agent leaderboards
 

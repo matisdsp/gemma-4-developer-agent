@@ -279,9 +279,17 @@ Large Language Monkeys (2407.21787, coverage vs samples); Latency and Token-Awar
 Reasoning Models (2605.14163, GPT-5.4 nano, 8 proposals 79.0% coverage, critic selection 76.4%
 vs 67.0% single, API tokens); Kozuchi (2608.15579, k = 8, 27B); SquidAgent (2610.08647,
 wall-clock criterion for parallelising agent layers); FailFast-RestartSmart (2608.03222);
-SPLIT (2610.23255, 2026-10-16: allocation among sampling, model mixing and verification under
-imperfect verifiers, latency as one cost, no batching, no depth or retry; we reuse its selection
-model rather than compete with it). None
+SPLIT (2610.23255, 2026-10-16, read in full on 2026-10-24, fiche in `literature.md` 2.9:
+allocation among sampling, model mixing and verification under imperfect verifiers; latency
+priced as additive, "ignores parallel sampling"; SWE-bench rollouts of one 32B agent with an LLM
+patch verifier; no wall-clock cap, depth or informed retry; beta-binomial difficulty but no
+intra-task correlation reported). Low collision risk overall. Two sub-claims must cite it:
+heterogeneity slowing pass@k (its 96% vs 61% MATH example) and verification paying only with
+width (its threshold hurts at N = 1, helps from N = 4). We use its Prop. 1 to interpret S1, not
+as an estimator. Related-work sentence: *SPLIT gives an exact best-of-N formula under imperfect
+verifiers and prices samples by compute or a latency-like exponent, but treats latency as
+additive, ignores parallel sampling, has no in-attempt depth or retry, and its smallest agent is
+32B; we measure matched wall-clock arms for a ~4B local agent at k <= 4.* None
 compares depth, retry, width and size at matched wall-clock on single-user hardware for a small
 model. Venue: no announced entry.
 
