@@ -172,14 +172,17 @@ same wall-clock.
   pass@1 reference, not a temperature-1.0 sample.
 - **A1 depth**: one attempt with a mandatory reproduce-then-verify step before `submit_patch`
   (the score agent's `variants/e4b-v2`: a /tmp/repro.py that must fail before and pass after the
-  edit, the nearest existing test file run before submitting, a 36-call plan, thinking 4096). Motivation: in the calibration run, 4 of 10 E4B
+  edit, the nearest existing test file run before submitting, a 36-call plan, thinking 4096
+  against A0's 2048, a confound to separate with an A1 run at 2048, gaps.md M7b). Motivation: in the calibration run, 4 of 10 E4B
   failures ran no test or snippet at all and both successes did (trace reading).
 - **A2 informed retry**: sequential attempts; each new attempt starts from a clean tree and sees
   the previous diff and its test output (cf. FailFast-RestartSmart 2608.03222, +5.2 points with
   the overlay vs +0.2 for a cold restart; SWE-Residual 2610.25899 warns of the opposite effect).
 - **A3 width**: k independent attempts (temperature 1.0), sequential (fits ADK today as a
   LoopAgent) or batched (Mac only: concurrent sessions, each with its own sandbox), then a cheap
-  selector.
+  selector. As run so far: the r = 4 independent attempts of A0 and A1 at their own temperature
+  0.2 on Modal, analysed offline as k-subsets (M7c, M11); no temperature-1.0 run on 40 tasks, and
+  no batched run on the Mac since the memory crash of 2026-10-23.
 - **A4 size**: one attempt of Gemma 4 12B with the same T (the next size the competition allows;
   it fits the Mac at 4 bits).
 
@@ -211,11 +214,15 @@ same wall-clock.
 - **Selectors** S0 first candidate, S1 existing tests + import check, S2 agreement between
   normalised diffs, S3 model-as-judge (one-line negative control). Selector code frozen and
   hashed before scoring; developed only on the 14 calibration tasks.
-- **Tasks.** Mac-scorable public tasks. Raise n toward 100+: on the Mac the network is available
+- **Tasks.** *As run: Modal, the 40-task pool (`reports/modal_pool_40.txt`) plus the 35 other
+  gold-scorable tasks (`reports/gold_ok.txt` has 75) kept for confirmation.* Original plan:
+  Mac-scorable public tasks. Raise n toward 100+: on the Mac the network is available
   to install missing test dependencies (`inline_snapshot`) and run a local `httpbin`, which the
   Kaggle sandbox could not (75/129 scorable there). Report by repository and by issue year.
 - **Timing.** l(b) per model from the decode microbenchmark (M1) and, more importantly, t(b)
-  measured end to end on real concurrent attempts through the local server. One 4xL4
+  measured end to end on real concurrent attempts through the local server. *Not measured yet;
+  with heavy Mac runs ruled out, the end-to-end t(b) has to come from Modal L4 at concurrency
+  1 / 2 / 4 / 8 (one L4 serving one user is the paper's setting anyway).* One 4xL4
   microbenchmark inside a kernel the score agent runs anyway gives the scorer-side l(b).
 - **Scorer anchor.** e4b-k (sequential A3, k = 4, S1) once on the 14 calibration tasks on 4xL4,
   only if quota or Modal allows. It validates sequential width on the real stack; batched width
@@ -232,6 +239,9 @@ same wall-clock.
   on the smallest task subset. GPU: at most one 4xL4 anchor plus the microbenchmark.
 
 ### Go/no-go gate (2026-10-24/25)
+
+*Status on 2026-10-24:* (1) met on Modal instead of the Mac (gold check 40/40 on the pool);
+(2) not measured, see Timing; (3) met on the 40-task pool at r = 4 (A0 4 mixed tasks, A1 7, M7b).
 
 1. The Mac pipeline scores the 14 calibration tasks (gold patches pass, agent patches verified).
 2. Measured end-to-end t(4)/t(1) <= 1.6 with four concurrent sessions through the local server
@@ -352,6 +362,12 @@ The agents run experiments overnight and on weekends; the author reviews and wri
 | 06/11-09/11 | Devil's-advocate review, missing ablations filled (temperature, sequential vs batched); reproduction package on public tasks only | agents + Matis | |
 | 10/11-11/11 | Final edit to 3,000 words; optional arXiv PDF; writeup created on Kaggle as a draft | Matis | |
 | **Thu 12/11** | **Submit before 23:59 UTC (target 12:00)** | Matis | |
+
+*Status on 2026-10-24:* the Mac rows above are obsolete (no heavy local runs since the crash
+of 2026-10-23). The runs left are on Modal, each after the coordinator approves the spend: the
+confirmatory A1 x 4 on the 35 held-out tasks (about 2.5 $), A1 at thinking 2048 on the 40-task
+pool (about 2-3 $), end-to-end t(b) on one L4, and 12B at a 15-minute cap after the credits of
+1 November.
 
 Slack: two days (06-09/11 can absorb a late anchor run). If the scorer anchor cannot run
 (quota or Modal not approved), the paper rests on the Mac results plus the l(b) curve from the
