@@ -76,8 +76,9 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   (9.4 %), 8 tasks ever solved. Paired on per-task success frequency: A1 better on 5 tasks
   (fastapi_14077 2/4 vs 0/4, fastapi_14794, rich_3472, rich_3535, rich_4077), A0 better on 1
   (fastapi_14458 2/4 vs 0/4), sign test p = 0.22. The M7 effect shrinks with more repeats (from
-  2x to 1.4x) but keeps its sign. Mixed tasks (0 < successes < 4): A0 3 (fastapi_14458,
-  rich_3454 3/4, rich_2725, rich_4077), A1 6. A1 also spends the idle budget: mean agent time 256 s
+  2x to 1.4x) but keeps its sign. Mixed tasks (0 < successes < 4): A0 4 (fastapi_14458 2/4,
+  rich_2725 1/4, rich_3454 3/4, rich_4077 1/4), A1 7 (fastapi_14077, fastapi_14794, rich_2725,
+  rich_3454, rich_3472, rich_3535, rich_4077). A1 also spends the idle budget: mean agent time 256 s
   vs 216 s, 33 vs 20 attempts at the 7-min cap. Cost about 2.8 $ for the 198 new attempts.
   Raw data: `results/modal/a0a1-r2` and `results/modal/a0a1-r4` (per attempt: patch, test log, ATIF
   trace, agent seconds).
