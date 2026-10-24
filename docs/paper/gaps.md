@@ -80,6 +80,10 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   rich_2725 1/4, rich_3454 3/4, rich_4077 1/4), A1 7 (fastapi_14077, fastapi_14794, rich_2725,
   rich_3454, rich_3472, rich_3535, rich_4077). A1 also spends the idle budget: mean agent time 256 s
   vs 216 s, 33 vs 20 attempts at the 7-min cap. Cost about 2.8 $ for the 198 new attempts.
+  Confound: A1 differs from A0 in the prompt (repro script, nearest-test run, call plan) **and**
+  in `thinking_budget` (4096 vs 2048 in `configs/sampling.yaml`; `agent.yaml` and
+  `eval_config.yaml` are identical). The depth effect cannot be credited to verification alone
+  until A1 is run with thinking 2048 (about 160 attempts, 2-3 $).
   Raw data: `results/modal/a0a1-r2` and `results/modal/a0a1-r4` (per attempt: patch, test log, ATIF
   trace, agent seconds).
 
@@ -91,6 +95,9 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   coverage, about half of what independent attempts would give, and roughly twice as much on top
   of A1 as on top of A0. Depth makes width pay. Paired A1 - A0 on expected per-task success: +1.00
   task (90% interval -0.25 to +2.25), permutation p = 0.40; 5 tasks better under A1, 1 under A0.
+  Width here is r = 4 independent attempts at the submission temperature 0.2, not the
+  temperature-1.0 sampling of the A3 protocol; whether 1.0 buys more coverage is untested on
+  40 tasks (M6 ran at 1.0 but on 14).
 
 - **M11, selection at k <= 4 from the agent's own checks** (CPU only,
   `analysis/allocation/selectors.py`, on the M7b attempts; selectors see only what the agent saw).
