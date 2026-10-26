@@ -115,6 +115,51 @@
    "concurrency": 5,
    "run_py": "reports/runs/31b-v5/run.py",
    "run_py_sha256": "e58ecd9b93903196b72918df4b0f83a822fc184ea4dfaea2b277f9d6ae573230"
+  },
+  "a1-ho35": {
+   "launched_utc": "2026-10-26T14:01",
+   "platform": "Modal 1xL4",
+   "runner_commit": "7b11402",
+   "modal_app_commit": "9b3ff71",
+   "variants": {
+    "e4b-v2": "e9bfad6"
+   },
+   "repeats": 4,
+   "tasks": "reports/modal_heldout_35.txt",
+   "concurrency": 8,
+   "note": "confirmatory run for H1'/H2', pre-registered in docs/paper/preregistration.md (a224c74)",
+   "run_py": "reports/runs/a1-ho35/run.py",
+   "run_py_sha256": "577c4832fc1561bc7d49e96152f04b476794ecbc3ab1e1cf325fd5a51ff80dac"
+  },
+  "t-c1": {
+   "launched_utc": "2026-10-26T14:01",
+   "platform": "Modal 1xL4",
+   "runner_commit": "7b11402",
+   "modal_app_commit": "9b3ff71",
+   "variants": {
+    "e4b-v2": "e9bfad6"
+   },
+   "repeats": 1,
+   "tasks": "reports/eval_calib_14.txt",
+   "concurrency": 1,
+   "note": "H3' timing at concurrency 1, pre-registered (a224c74)",
+   "run_py": "reports/runs/t-c1/run.py",
+   "run_py_sha256": "d48cd7f7fdba851feb44dd4c4ab54caea56aab9112530ddf405df5cfaf12121e"
+  },
+  "t-c4": {
+   "launched_utc": "2026-10-26T14:01",
+   "platform": "Modal 1xL4",
+   "runner_commit": "7b11402",
+   "modal_app_commit": "9b3ff71",
+   "variants": {
+    "e4b-v2": "e9bfad6"
+   },
+   "repeats": 1,
+   "tasks": "reports/eval_calib_14.txt",
+   "concurrency": 4,
+   "note": "H3' timing at concurrency 4, pre-registered (a224c74)",
+   "run_py": "reports/runs/t-c4/run.py",
+   "run_py_sha256": "caca2110d4a1a49276b422a9dd3fe0376f56faadbfbeb26fd263589b11643f1f"
   }
  }
 }
