@@ -69,3 +69,25 @@ a81bb414d1a9be92da28cedfdb66785cd11643beba98d4c8504b7d6cee5e28be  reports/modal_
 ```
 
 Check: `shasum -a 256 -c` on the block above, from the repository root.
+
+## Addendum, 2026-10-26 (declared before its run; exploratory, not a confirmatory test)
+
+The thinking confound of A1 (gaps.md M7b): run `a1t2048-ho35` = `variants/e4b-v2-t2048`, i.e.
+A1 with `thinking_budget` 2048 instead of 4096 and nothing else changed, on the same 35
+held-out tasks, 4 repeats, concurrency 8, deadline 1.75 h, same stack as `a1-ho35`. Analysis,
+paired by task against `a1-ho35`:
+
+```bash
+python3 -I docs/paper/analysis/allocation/passk.py compare \
+    results/modal/a1-ho35/results/e4b-v2/results.jsonl \
+    results/modal/a1t2048-ho35/results/e4b-v2-t2048/results.jsonl --a e4b-v2 --b e4b-v2-t2048
+python3 -I docs/paper/analysis/allocation/passk.py summary \
+    results/modal/a1t2048-ho35/results/e4b-v2-t2048/results.jsonl
+```
+
+Reading: if 2048 is within about one task of 4096 at pass@1, A1's gain over A0 is attributed to
+the verification prompt; if 2048 loses clearly, to the thinking budget, or to both.
+
+```
+87a5e95330de4543064d4d9ea85807e2c75ceec243369e73fe5e3b8e234e8bad  reports/runs/a1t2048-ho35/run.py
+```
