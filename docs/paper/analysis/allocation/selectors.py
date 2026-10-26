@@ -1,9 +1,12 @@
 """Can a cheap, agent-side selector find a resolved attempt among k <= 4 attempts of a task?
 
-Offline, standard library only. Run: python3 -I selectors.py
+Offline, standard library only. Run: python3 -I selectors.py [--dirs d1,d2] [--arms A1=e4b-v2]
 
-Data: results/modal/a0a1-r2 and a0a1-r4, arms e4b (A0) and e4b-v2 (A1). If the same
-(instance_id, rep) appears in both directories the r4 line wins (count printed).
+Data (defaults): results/modal/a0a1-r2 and a0a1-r4, arms e4b (A0) and e4b-v2 (A1). If the same
+(instance_id, rep) appears in two directories the later one wins (count printed).
+Confirmatory run (pre-registered, docs/paper/preregistration.md):
+  python3 -I selectors.py --dirs a1-ho35 --arms A1=e4b-v2
+Only tasks with exactly 4 attempts enter the per-task analysis (the excluded count is printed).
 
 Selectors use only information visible to the agent (its patch, its trace); the hidden
 `resolved` verdict is used only to score them.
@@ -30,6 +33,7 @@ EXTRACTION RULES (all from the ATIF trace + patch file)
   Extra (not in the brief): S1any = prefer (repro pass OR pytest ok), then non-empty, ties smallest patch.
   verified     (self-verified flag) nonempty AND repro pass AND pytest ok.
 """
+import argparse
 import json
 import random
 import re
@@ -297,6 +301,15 @@ def boot_diff(tv, k, n1, n2, rng, tasks):
 
 
 def main():
+    global DIRS, ARMS
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dirs", help="comma-separated run directories under results/modal")
+    ap.add_argument("--arms", help="comma-separated ARM=variant pairs")
+    args = ap.parse_args()
+    if args.dirs:
+        DIRS = args.dirs.split(",")
+    if args.arms:
+        ARMS = [tuple(x.split("=", 1)) for x in args.arms.split(",")]
     data, dups = load()
     print(f"repo root: {REPO}")
     print("duplicates (same instance_id, rep in r2 and r4; r4 kept): " + ", ".join(f"{a}={n}" for a, n in dups.items()))
@@ -320,12 +333,12 @@ def main():
 
     print("\n== 3 example attempts (sanity check of the parsing) ==")
     shown = 0
-    for arm in ("A1",):
+    for arm in [a for a in ("A1",) if a in data]:
         att = data[arm]
-        picks = [next(a for a in att if a["ran_repro"] and a["rpass"] and a["resolved"]),
-                 next(a for a in att if a["ran_repro"] and not a["rpass"]),
-                 next(a for a in att if a["ran_pytest"] and a["pok"] and not a["resolved"])]
-        for a in picks:
+        picks = [next((a for a in att if a["ran_repro"] and a["rpass"] and a["resolved"]), None),
+                 next((a for a in att if a["ran_repro"] and not a["rpass"]), None),
+                 next((a for a in att if a["ran_pytest"] and a["pok"] and not a["resolved"]), None)]
+        for a in filter(None, picks):
             print({k: a[k] for k in ("arm", "iid", "rep", "resolved", "nonempty", "patch_chars", "ran_repro", "repro_runs", "repro_pass",
                                       "ran_pytest", "pytest_ok", "submitted", "agent_s", "ntool")})
             shown += 1
@@ -334,6 +347,10 @@ def main():
     tvs = {}
     for arm in data:
         g = per_task(data[arm])
+        short = sorted(t for t, v in g.items() if len(v) != 4)
+        if short:
+            print(f"{arm}: {len(short)} tasks without exactly 4 attempts excluded: {short}")
+        g = {t: v for t, v in g.items() if len(v) == 4}
         tvs[arm] = task_values(g)
         tv = tvs[arm]
         tasks = sorted(tv)
@@ -352,6 +369,12 @@ def main():
             lo_d, hi_d = boot_diff(tv, k, "oracle", "S1", rng, tasks)
             print(f"k={k}: oracle {total(tv, k, 'oracle'):.2f} [{lo_o:.2f}, {hi_o:.2f}]  S1 {total(tv, k, 'S1'):.2f} [{lo_s:.2f}, {hi_s:.2f}]  "
                   f"S0 {total(tv, k, 'S0'):.2f} [{lo_0:.2f}, {hi_0:.2f}]  oracle-S1 {total(tv, k, 'oracle') - total(tv, k, 'S1'):.2f} [{lo_d:.2f}, {hi_d:.2f}]")
+        lo_h1, hi_h1 = boot_diff(tv, 4, "oracle", "S0", rng, tasks)
+        lo_h2, hi_h2 = boot_diff(tv, 4, "S1any", "S0", rng, tasks)
+        lo_h2b, hi_h2b = boot_diff(tv, 4, "S1", "S0", rng, tasks)
+        print(f"H1' pass@4 - pass@1: {total(tv, 4, 'oracle') - total(tv, 1, 'S0'):.2f} [{lo_h1:.2f}, {hi_h1:.2f}]")
+        print(f"H2' best@4(S1any) - pass@1: {total(tv, 4, 'S1any') - total(tv, 1, 'S0'):.2f} [{lo_h2:.2f}, {hi_h2:.2f}]"
+              f"  (secondary S1: {total(tv, 4, 'S1') - total(tv, 1, 'S0'):.2f} [{lo_h2b:.2f}, {hi_h2b:.2f}])")
         print("-- tasks by number of resolved attempts out of 4:",
               dict(sorted(Counter(sum(a["resolved"] for a in v) for v in g.values()).items())))
 
@@ -371,6 +394,8 @@ def main():
     print("  base rate resolved: " + ", ".join(f"{arm} {sum(a['resolved'] for a in att)}/{len(att)}" for arm, att in data.items()))
 
     print("\n== Tasks where S1 at k=4 picks a resolved attempt vs oracle (A1, tasks with oracle=1) ==")
+    if "A1" not in tvs:
+        return
     tv = tvs["A1"]
     cov = [(t, tv[t][4]["S1"]) for t in sorted(tv) if tv[t][4]["oracle"] == 1]
     print(f"{len(cov)} tasks with >=1 resolved attempt; S1 expected hit rate on them: {sum(v for _, v in cov) / max(1, len(cov)):.2f}")
