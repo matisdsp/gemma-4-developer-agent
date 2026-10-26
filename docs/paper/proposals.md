@@ -45,6 +45,12 @@ paper.
 
 ## Gate status on 2026-10-23 and final recommendation
 
+**Confirmatory result (2026-10-26, gaps.md M12).** On the 35 held-out tasks, width on top of
+A1 is confirmed (pass@4 - pass@1 +3.75 tasks, 90% interval 1.75 to 6.00); the primary selector
+S1any is not (+1.75, -0.75 to 4.25) but the pre-M11 selector S1 is (+2.75, 0.75 to 5.00); one L4
+runs 4 attempts at 1.33x the time of one (0.99 to 1.73). The paper reports S1any as the failed
+primary and S1 as the selector that held.
+
 **Read first (2026-10-24).** This section is a log in date order, and its early paragraphs
 were overtaken the same afternoon. The current thesis is the one in "Update after run 1 at
 r = 4" below: *how to spend extra wall-clock depends on whether the agent is idle-bound or

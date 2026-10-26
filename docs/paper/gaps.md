@@ -114,6 +114,27 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   pytest. Intervals are wide: only 8 of 40 tasks have any resolved A1 attempt (oracle - S1 at
   k = 4: 2.0, 90% interval 0 to 4).
 
+- **M12, the pre-registered confirmatory run** (`preregistration.md`, frozen at a224c74 before
+  any attempt; Modal 1xL4, 2026-10-26). A1 x 4 on the 35 held-out tasks (`a1-ho35`, 140
+  attempts, none lost, 29 resolved) and A1 x 1 on the 14 calibration tasks at concurrency 1 and
+  4 (`t-c1`, `t-c4`). Verdicts, in expected tasks out of 35 with 90% task-bootstrap intervals:
+  - **H1' confirmed.** pass@1 7.25, pass@4 11.00; pass@4 - pass@1 = +3.75 [1.75, 6.00].
+    Intra-task correlation 0.70 (0.46 on the pool; `passk.py` prints no interval for it, a
+    deviation from the pre-registration). 7 of 35 tasks are mixed, 24 never solved, 4 always.
+  - **H2' not confirmed for the primary selector.** S1any: best@4 - pass@1 = +1.75
+    [-0.75, 4.25]. The secondary selector S1, the one specified before M11, holds: +2.75
+    [0.75, 5.00], best@4 10.00 against an oracle of 11.00 (73% of the random-to-oracle gap).
+    The post-hoc OR rule did not replicate: on these tasks a passing repro is a weak signal
+    (precision 0.44, 18 flagged attempts) and the OR rule flags 53 attempts at precision 0.38,
+    while S1 ranks a clean pytest above a passing repro alone.
+  - **H3' holds on the point estimate, not on the interval.** Agent seconds at concurrency 4
+    over concurrency 1, paired by task: 1.33 [0.99, 1.73] against the 1.6 threshold; per tool
+    call 1.09 [0.90, 1.34], so the server batches and most of the extra time is longer paths
+    (12.6 against 11.0 calls); wall time 1.27 [1.00, 1.52].
+  - Not pre-registered: the held-out tasks are easier for A1 than the pool (pass@1 20.7%
+    against 9.4%), so absolute rates do not pool; the per-pool gains do (pass@4 - pass@1 +4.25
+    on the pool, +3.75 here; S1 +2.25 and +2.75).
+
 - **M10, the 31B levers measured on Modal L40S** (score agent, 2026-10-23, paired on the same
   tasks): v1 11/31; v3 (A1's forced verification ported to 31B) 8/30, losing 2 tasks and winning
   none; v4 (first edit by call 8, get_status time checks, thinking 2048) 8/31, losing 3 and winning
