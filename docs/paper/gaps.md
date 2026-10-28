@@ -134,6 +134,17 @@ Our own measurements quoted below (all reproducible; scripts and how to run them
   - Not pre-registered: the held-out tasks are easier for A1 than the pool (pass@1 20.7%
     against 9.4%), so absolute rates do not pool; the per-pool gains do (pass@4 - pass@1 +4.25
     on the pool, +3.75 here; S1 +2.25 and +2.75).
+  - **Addendum, the thinking confound (exploratory, `a1t2048-ho35`).** A1 with thinking 2048
+    instead of 4096, same 35 tasks. The run stopped at 115/140 attempts (65 min, no error in
+    the log: the Modal workspace hit its spend limit, and a top-up was refused for the same
+    reason on 2026-10-28), so every task has 3 attempts and 10 have a 4th. Declared analysis,
+    paired by task: 4096 minus 2048 = +0.50 tasks [-0.58, 1.67], p = 0.64 (4 tasks better at
+    4096, 3 at 2048, 28 tied); 2048 alone pass@1 6.33 [3.00, 10.00], 3 mixed tasks out of 35.
+    Not declared, both arms cut to their first 3 attempts: +1.00 [0.00, 2.33], p = 0.50. By
+    the addendum's rule (within about one task) the gain is the verification prompt's, but the
+    whole A1 - A0 effect is itself about one task (+1.0 [-0.25, 2.25] on the pool, M7c), so
+    this run bounds the thinking share at roughly the same size as the effect and does not
+    separate the two. The paper states it that way.
 
 - **M10, the 31B levers measured on Modal L40S** (score agent, 2026-10-23, paired on the same
   tasks): v1 11/31; v3 (A1's forced verification ported to 31B) 8/30, losing 2 tasks and winning
