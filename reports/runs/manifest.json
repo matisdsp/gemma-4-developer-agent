@@ -172,9 +172,24 @@
    "repeats": 4,
    "tasks": "reports/modal_heldout_35.txt",
    "concurrency": 8,
-   "note": "addendum to docs/paper/preregistration.md (a4aec30), exploratory; stopped at 115/140 when the workspace hit its Modal spend limit",
+   "note": "addendum to docs/paper/preregistration.md (a4aec30), exploratory; stopped at 115/140 when the workspace hit its Modal spend limit, completed by a1t2048-ho35-topup",
    "run_py": "reports/runs/a1t2048-ho35/run.py",
    "run_py_sha256": "87a5e95330de4543064d4d9ea85807e2c75ceec243369e73fe5e3b8e234e8bad"
+  },
+  "a1t2048-ho35-topup": {
+   "launched_utc": "2026-10-28T10:57",
+   "platform": "Modal 1xL4 (second workspace, image builder pinned to 2025.06)",
+   "runner_commit": "7b11402",
+   "modal_app_commit": "9b3ff71",
+   "variants": {
+    "e4b-v2-t2048": "b94818f"
+   },
+   "repeats": 4,
+   "tasks": "reports/modal_heldout_35.txt",
+   "concurrency": 8,
+   "note": "the 25 attempts missing from a1t2048-ho35 (--skip-done), same CONFIG apart from 'only'",
+   "run_py": "reports/runs/a1t2048-ho35-topup/run.py",
+   "run_py_sha256": "91f1b58cb65a8dd1e7e7e96957272c246ba3900867666429565588a711eb43b2"
   }
  }
 }
