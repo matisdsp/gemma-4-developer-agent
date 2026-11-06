@@ -4,7 +4,8 @@ Each gap states what is open, the evidence that it is open (papers in `literatur
 arXiv id), the check that it has not been closed in the last six months, what we measured
 ourselves, and how crowded the paper-track venue already is. The gaps are ordered by how much
 leverage they give a paper written in three weeks with almost no GPU (6 GPU-hours a week on
-Kaggle, a Mac M4 Pro with 24 GB, no paid API).
+Kaggle, a Mac M4 Pro with 24 GB, no paid API). *[Corrected 2026-11-06: the Kaggle quota is 30 h a
+week; 6 h was a display bug, see the project notes.]*
 
 Verification method: six reading passes (about 260 fiches), a systematic arXiv sweep of
 2026-05-01 to 2026-10-22 (section 7 of `literature.md`), targeted web and arXiv searches on each

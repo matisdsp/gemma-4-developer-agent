@@ -6,7 +6,7 @@ below is in `gaps.md` (G1-G10, measurements M1-M11) and `literature.md`.
 
 ## Constraints that drive the ranking
 
-- **Compute.** Kaggle GPU quota is 6 h a week on this account (Kaggle API, 2026-10-22), not 30 h;
+- **Compute.** *[Corrected 2026-11-06: the quota is 30 h a week, 6 h was a display bug, see the project notes.]* Kaggle GPU quota is 6 h a week on this account (Kaggle API, 2026-10-22), not 30 h;
   a 4xL4 hour costs at least 2 quota hours. One 31B pass over 30 tasks takes 3-3.5 h of wall time,
   more than a week's quota. A small Modal budget (E4B/E2B only) may open, at the coordinator's
   discretion. The Mac (M4 Pro, 24 GB) runs E2B and E4B at 4 bits through mlx-lm, at 111 and 67
