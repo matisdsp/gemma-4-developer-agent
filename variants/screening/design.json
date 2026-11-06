@@ -1,0 +1,322 @@
+{
+  "s00": {
+    "temperature_0.7": false,
+    "thinking_256": false,
+    "spec_first": false,
+    "reproduce_first": false,
+    "imposed_verification": false,
+    "useful_test": false,
+    "compile_check": false,
+    "worked_example": false
+  },
+  "s01": {
+    "temperature_0.7": false,
+    "thinking_256": false,
+    "spec_first": false,
+    "reproduce_first": false,
+    "imposed_verification": true,
+    "useful_test": false,
+    "compile_check": false,
+    "worked_example": true
+  },
+  "s02": {
+    "temperature_0.7": false,
+    "thinking_256": false,
+    "spec_first": false,
+    "reproduce_first": true,
+    "imposed_verification": false,
+    "useful_test": false,
+    "compile_check": true,
+    "worked_example": true
+  },
+  "s03": {
+    "temperature_0.7": false,
+    "thinking_256": false,
+    "spec_first": false,
+    "reproduce_first": true,
+    "imposed_verification": true,
+    "useful_test": false,
+    "compile_check": true,
+    "worked_example": false
+  },
+  "s04": {
+    "temperature_0.7": false,
+    "thinking_256": false,
+    "spec_first": true,
+    "reproduce_first": false,
+    "imposed_verification": false,
+    "useful_test": true,
+    "compile_check": false,
+    "worked_example": true
+  },
+  "s05": {
+    "temperature_0.7": false,
+    "thinking_256": false,
+    "spec_first": true,
+    "reproduce_first": false,
+    "imposed_verification": true,
+    "useful_test": true,
+    "compile_check": false,
+    "worked_example": false
+  },
+  "s06": {
+    "temperature_0.7": false,
+    "thinking_256": false,
+    "spec_first": true,
+    "reproduce_first": true,
+    "imposed_verification": false,
+    "useful_test": true,
+    "compile_check": true,
+    "worked_example": false
+  },
+  "s07": {
+    "temperature_0.7": false,
+    "thinking_256": false,
+    "spec_first": true,
+    "reproduce_first": true,
+    "imposed_verification": true,
+    "useful_test": true,
+    "compile_check": true,
+    "worked_example": true
+  },
+  "s08": {
+    "temperature_0.7": false,
+    "thinking_256": true,
+    "spec_first": false,
+    "reproduce_first": false,
+    "imposed_verification": false,
+    "useful_test": true,
+    "compile_check": true,
+    "worked_example": false
+  },
+  "s09": {
+    "temperature_0.7": false,
+    "thinking_256": true,
+    "spec_first": false,
+    "reproduce_first": false,
+    "imposed_verification": true,
+    "useful_test": true,
+    "compile_check": true,
+    "worked_example": true
+  },
+  "s10": {
+    "temperature_0.7": false,
+    "thinking_256": true,
+    "spec_first": false,
+    "reproduce_first": true,
+    "imposed_verification": false,
+    "useful_test": true,
+    "compile_check": false,
+    "worked_example": true
+  },
+  "s11": {
+    "temperature_0.7": false,
+    "thinking_256": true,
+    "spec_first": false,
+    "reproduce_first": true,
+    "imposed_verification": true,
+    "useful_test": true,
+    "compile_check": false,
+    "worked_example": false
+  },
+  "s12": {
+    "temperature_0.7": false,
+    "thinking_256": true,
+    "spec_first": true,
+    "reproduce_first": false,
+    "imposed_verification": false,
+    "useful_test": false,
+    "compile_check": true,
+    "worked_example": true
+  },
+  "s13": {
+    "temperature_0.7": false,
+    "thinking_256": true,
+    "spec_first": true,
+    "reproduce_first": false,
+    "imposed_verification": true,
+    "useful_test": false,
+    "compile_check": true,
+    "worked_example": false
+  },
+  "s14": {
+    "temperature_0.7": false,
+    "thinking_256": true,
+    "spec_first": true,
+    "reproduce_first": true,
+    "imposed_verification": false,
+    "useful_test": false,
+    "compile_check": false,
+    "worked_example": false
+  },
+  "s15": {
+    "temperature_0.7": false,
+    "thinking_256": true,
+    "spec_first": true,
+    "reproduce_first": true,
+    "imposed_verification": true,
+    "useful_test": false,
+    "compile_check": false,
+    "worked_example": true
+  },
+  "s16": {
+    "temperature_0.7": true,
+    "thinking_256": false,
+    "spec_first": false,
+    "reproduce_first": false,
+    "imposed_verification": false,
+    "useful_test": true,
+    "compile_check": true,
+    "worked_example": true
+  },
+  "s17": {
+    "temperature_0.7": true,
+    "thinking_256": false,
+    "spec_first": false,
+    "reproduce_first": false,
+    "imposed_verification": true,
+    "useful_test": true,
+    "compile_check": true,
+    "worked_example": false
+  },
+  "s18": {
+    "temperature_0.7": true,
+    "thinking_256": false,
+    "spec_first": false,
+    "reproduce_first": true,
+    "imposed_verification": false,
+    "useful_test": true,
+    "compile_check": false,
+    "worked_example": false
+  },
+  "s19": {
+    "temperature_0.7": true,
+    "thinking_256": false,
+    "spec_first": false,
+    "reproduce_first": true,
+    "imposed_verification": true,
+    "useful_test": true,
+    "compile_check": false,
+    "worked_example": true
+  },
+  "s20": {
+    "temperature_0.7": true,
+    "thinking_256": false,
+    "spec_first": true,
+    "reproduce_first": false,
+    "imposed_verification": false,
+    "useful_test": false,
+    "compile_check": true,
+    "worked_example": false
+  },
+  "s21": {
+    "temperature_0.7": true,
+    "thinking_256": false,
+    "spec_first": true,
+    "reproduce_first": false,
+    "imposed_verification": true,
+    "useful_test": false,
+    "compile_check": true,
+    "worked_example": true
+  },
+  "s22": {
+    "temperature_0.7": true,
+    "thinking_256": false,
+    "spec_first": true,
+    "reproduce_first": true,
+    "imposed_verification": false,
+    "useful_test": false,
+    "compile_check": false,
+    "worked_example": true
+  },
+  "s23": {
+    "temperature_0.7": true,
+    "thinking_256": false,
+    "spec_first": true,
+    "reproduce_first": true,
+    "imposed_verification": true,
+    "useful_test": false,
+    "compile_check": false,
+    "worked_example": false
+  },
+  "s24": {
+    "temperature_0.7": true,
+    "thinking_256": true,
+    "spec_first": false,
+    "reproduce_first": false,
+    "imposed_verification": false,
+    "useful_test": false,
+    "compile_check": false,
+    "worked_example": true
+  },
+  "s25": {
+    "temperature_0.7": true,
+    "thinking_256": true,
+    "spec_first": false,
+    "reproduce_first": false,
+    "imposed_verification": true,
+    "useful_test": false,
+    "compile_check": false,
+    "worked_example": false
+  },
+  "s26": {
+    "temperature_0.7": true,
+    "thinking_256": true,
+    "spec_first": false,
+    "reproduce_first": true,
+    "imposed_verification": false,
+    "useful_test": false,
+    "compile_check": true,
+    "worked_example": false
+  },
+  "s27": {
+    "temperature_0.7": true,
+    "thinking_256": true,
+    "spec_first": false,
+    "reproduce_first": true,
+    "imposed_verification": true,
+    "useful_test": false,
+    "compile_check": true,
+    "worked_example": true
+  },
+  "s28": {
+    "temperature_0.7": true,
+    "thinking_256": true,
+    "spec_first": true,
+    "reproduce_first": false,
+    "imposed_verification": false,
+    "useful_test": true,
+    "compile_check": false,
+    "worked_example": false
+  },
+  "s29": {
+    "temperature_0.7": true,
+    "thinking_256": true,
+    "spec_first": true,
+    "reproduce_first": false,
+    "imposed_verification": true,
+    "useful_test": true,
+    "compile_check": false,
+    "worked_example": true
+  },
+  "s30": {
+    "temperature_0.7": true,
+    "thinking_256": true,
+    "spec_first": true,
+    "reproduce_first": true,
+    "imposed_verification": false,
+    "useful_test": true,
+    "compile_check": true,
+    "worked_example": true
+  },
+  "s31": {
+    "temperature_0.7": true,
+    "thinking_256": true,
+    "spec_first": true,
+    "reproduce_first": true,
+    "imposed_verification": true,
+    "useful_test": true,
+    "compile_check": true,
+    "worked_example": false
+  }
+}
