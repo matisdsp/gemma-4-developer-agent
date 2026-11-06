@@ -34,7 +34,7 @@ def _stub(name):
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--agent-dir", type=Path, default=AGENT)
+    ap.add_argument("--agent-dir", type=Path, nargs="+", default=[AGENT])
     args = ap.parse_args()
 
     tools = ToolRegistry()
@@ -44,21 +44,22 @@ def main() -> None:
     for name in MODELS:
         models.register(name, LiteLlm(model=f"openai/{name}", api_base="http://127.0.0.1:1/v1"))
     limits, constraints = build_submission_limits()
-    agent = compile_submission(args.agent_dir, tool_registry=tools, model_registry=models,
-                               limits=limits, generation_constraints=constraints)
-    print(f"compiled: {type(agent).__name__} {agent.name}")
-    for sub in getattr(agent, "sub_agents", []) or []:
-        print(f"  sub-agent: {type(sub).__name__} {sub.name}")
+    for agent_dir in args.agent_dir:
+        agent = compile_submission(agent_dir, tool_registry=tools, model_registry=models,
+                                   limits=limits, generation_constraints=constraints)
+        print(f"{agent_dir}: compiled {type(agent).__name__} {agent.name}")
+        for sub in getattr(agent, "sub_agents", []) or []:
+            print(f"  sub-agent: {type(sub).__name__} {sub.name}")
 
-    instruction = getattr(agent, "instruction", None)
-    if isinstance(instruction, str):
-        state = {"problem_description": "PROBLEM-STATEMENT-SENTINEL"}
-        ctx = SimpleNamespace(_invocation_context=SimpleNamespace(
-            session=SimpleNamespace(state=state, app_name="a", user_id="u", id="s"),
-            artifact_service=None))
-        rendered = asyncio.run(inject_session_state(instruction, ctx))
-        print(f"instruction: {len(rendered)} chars rendered, "
-              f"problem inlined: {'PROBLEM-STATEMENT-SENTINEL' in rendered}")
+        instruction = getattr(agent, "instruction", None)
+        if isinstance(instruction, str):
+            state = {"problem_description": "PROBLEM-STATEMENT-SENTINEL"}
+            ctx = SimpleNamespace(_invocation_context=SimpleNamespace(
+                session=SimpleNamespace(state=state, app_name="a", user_id="u", id="s"),
+                artifact_service=None))
+            rendered = asyncio.run(inject_session_state(instruction, ctx))
+            print(f"  instruction: {len(rendered)} chars rendered, "
+                  f"problem inlined: {'PROBLEM-STATEMENT-SENTINEL' in rendered}")
 
 
 if __name__ == "__main__":
