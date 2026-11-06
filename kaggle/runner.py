@@ -27,6 +27,11 @@ OUT = WORK / "results"
 OUT.mkdir(parents=True, exist_ok=True)
 
 
+# Adds an unrelated file. A task whose hidden tests pass with it does not discriminate.
+NOOP_PATCH = ("diff --git a/NOOP_CHECK.txt b/NOOP_CHECK.txt\nnew file mode 100644\n"
+              "index 0000000..e69de29\n--- /dev/null\n+++ b/NOOP_CHECK.txt\n@@ -0,0 +1 @@\n+noop\n")
+
+
 def log(msg):
     line = f"[{(time.time() - T0) / 60:7.1f} min] {msg}"
     print(line, flush=True)
@@ -316,19 +321,19 @@ def main():
     dirs = write_variants()
     deadline = T0 + CONFIG.get("deadline_hours", 10.5) * 3600
 
-    if CONFIG["mode"] == "gold":
+    if CONFIG["mode"] in ("gold", "noop"):
         from adk_eval_core.tracing import SessionTrace
         from adk_submission import ModelRegistry
         name, agent_dir = next(iter(dirs.items()))
-        rdir = OUT / "gold"
+        rdir = OUT / CONFIG["mode"]
         rdir.mkdir(parents=True, exist_ok=True)
         ev = Evaluator(make_config(agent_dir, ModelRegistry(), data_dir, rdir))
-        patches = {t.instance_id: t.patch for t in tasks}
+        patches = {t.instance_id: t.patch if CONFIG["mode"] == "gold" else NOOP_PATCH for t in tasks}
 
         async def gold(task, snapshot_path, *a, **kw):
             return patches[task.instance_id], None, SessionTrace()
         ev._run_agent_sandbox = gold
-        jobs = [("gold", ev, t, 0, rdir) for t in tasks]
+        jobs = [(CONFIG["mode"], ev, t, 0, rdir) for t in tasks]
         asyncio.run(run_jobs(jobs, CONFIG.get("concurrency", 2), deadline))
     else:
         first = next(iter(dirs.values()))

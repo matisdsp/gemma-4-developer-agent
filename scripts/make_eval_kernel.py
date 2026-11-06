@@ -2,6 +2,8 @@
 
     # which public tasks the subprocess sandbox can score at all (CPU, reference patches)
     uv run python scripts/make_eval_kernel.py --mode gold --slug g4agent-gold
+    # which public tasks pass their hidden tests with a patch that changes nothing (CPU)
+    uv run python scripts/make_eval_kernel.py --mode noop --tasks reports/gold_ok.txt --slug g4agent-noop
     # variants side by side on 4xL4, interleaved, same vLLM server as the scorer
     uv run python scripts/make_eval_kernel.py --variant v1=agent --variant v2=variants/v2 \
         --tasks reports/gold_ok.txt --concurrency 4 --slug g4agent-eval
@@ -37,7 +39,7 @@ def read_variant(path: Path) -> dict[str, str]:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--mode", choices=["gold", "agent"], default="agent")
+    ap.add_argument("--mode", choices=["gold", "noop", "agent"], default="agent")
     ap.add_argument("--variant", action="append", default=[], help="name=agent_dir")
     ap.add_argument("--tasks", type=Path, help="file with one instance_id per line")
     ap.add_argument("--concurrency", type=int, default=4)
