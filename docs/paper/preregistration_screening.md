@@ -1,7 +1,7 @@
 # Pre-registration: which recipes move a 4B coding agent?
 
-Status: **draft, not frozen**. It freezes when Matis approves it, before any attempt of the full
-run. Nothing below may change after that; deviations are reported as deviations. This study is
+Status: **frozen 2026-11-06, approved by Matis, committed before any attempt of the full run.**
+Nothing below may change after that; deviations are reported as deviations. This study is
 independent of `preregistration.md`, which stays as it is.
 
 ## Question
@@ -48,8 +48,10 @@ in `tests/test_screening.py`.
   bfloat16, gemma4 parsers), official harness with the subprocess sandbox, concurrency 8.
 - **Blocks.** Three kernels, `g4agent-sc1` to `g4agent-sc3`, on `reports/screening_block{1,2,3}.txt`
   (24 tasks each, stratified by repository, seed 20261106), each attempt order shuffled by seed
-  (20261101, 20261102, 20261103), deadline 10.5 h. Every configuration of a task runs inside the
-  same block, so effects are measured within tasks and blocks cannot confound them.
+  (20261101, 20261102, 20261103), deadline 6.5 h so that two kernels in parallel stay within the
+  quota of a day. Attempts a deadline leaves out are run by a top-up kernel with `--skip-done`.
+  Every configuration of a task runs inside the same block, so effects are measured within tasks
+  and blocks cannot confound them.
 - **Pilot.** `g4agent-pilot` (96 attempts on 3 calibration tasks) is excluded. Only infrastructure
   and compliance were read on it, with comparisons of resolved tasks hidden. It led to one change,
   the `spec_stated` compliance measure.
@@ -103,4 +105,18 @@ One draw of 58 tasks has a noise of about 4 points, so it can only reject a larg
 
 ## SHA-256 of the frozen files
 
-To be filled at freeze. Check with `shasum -a 256 -c` from the repository root.
+Check with `shasum -a 256 -c` from the repository root.
+
+```
+3140f56dcaee11bd722e7e17cab3d364d1c708b69ec2038b320124111d9e637b  docs/paper/analysis/screening/analyze.py
+229b12d8f2e14a19ebff3d4a818c77e29b2cf457a2bb45a9bcbd2ddab081b662  scripts/make_screening.py
+c3bc9eb953f3729dc95e3b3c347adb338f6bed76bde33cac6219d244e43932f7  tests/test_screening.py
+8fd8dfe19cc5af85c08ffd15043e038a64088a23fc8d791c915aa273dd2ff484  variants/screening/design.json
+22802de1edab2ba29ea8000fab8577cf108c073b3a717d3c1cf7a187c23ddea6  reports/screening_tasks_72.txt
+acab2812d09d15d3170b16f136c5a4f141e98a263c071b13b79be203ee515f03  reports/screening_block1.txt
+393e69e55aaf9244625628874ff816116f0371e47aee47c9003c783b41f46604  reports/screening_block2.txt
+1d8d7dcc09bafb46b43b737ffd6cd89aeb663ffcd9e2f0328d44868832bc59d9  reports/screening_block3.txt
+dd163449f147174319f8441b87bf7f92c8ec3d93e6963aa255ea10087bcf09c5  reports/runs/screening-sc1/run.py
+3f84034e81c2037f24eff4d8bce01108e2a717d7e4dc84204d87d158bf625c70  reports/runs/screening-sc2/run.py
+0d886302b54b6bc16963e2a45b738ffc5120e811711131e0260a8f3ffb936129  reports/runs/screening-sc3/run.py
+```
