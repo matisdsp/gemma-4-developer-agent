@@ -116,6 +116,7 @@ No per-task tables with instance ids in the paper (data rule): histograms and ag
 | 11 | "verify before submit" is known (ECLoop, DeskCheck, SWE-Doctor) | not claimed; ours is a bounded small-model measurement |
 | 12 | own-test selection contradicts Kozuchi (own tests below a fixed rule at k = 8, 27B) | different regime: k <= 4, 4B, the gain is filtering out ~72% failing attempts, not ranking |
 | 13 | trained 4B models reach 49-62% on Verified (2609.35741, 2610.24914) | scope: no training, inference-time allocation on fixed weights |
+| 14 | a local GPU is shared with other conversations and tasks, so the spare batch slots are not free (Matis, 2026-11-06) | the setting is "a GPU with spare batch slots" (dedicated agent box, background or CI agent, team server, the competition scorer), not "any PC"; state the cost as a function of the load already on the GPU, from M1: L4 17.1 -> 18.2 ms/step from 4 to 8 sequences (+6%), Mac M4 Pro 22.0 -> 37.9 (+72%), so on a laptop the free lunch ends at 2-4 sequences; even past that point parallel beats sequential in throughput (2x the work for 1.72x the time on the Mac), the cost is that the other conversations slow down; correlation and selection results do not depend on the hardware; real mixed load not measured: say so |
 
 ## 5. Honesty rules for the draft
 
