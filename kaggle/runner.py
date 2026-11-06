@@ -13,6 +13,7 @@ import glob
 import json
 import logging
 import os
+import random
 import shutil
 import subprocess
 import sys
@@ -355,6 +356,8 @@ def main():
                 for name, (ev, rdir) in evs.items():
                     if not only or (name, t.instance_id, rep) in only:
                         jobs.append((name, ev, t, rep, rdir))
+        if CONFIG.get("shuffle_seed") is not None:  # no configuration always runs first on a task
+            random.Random(CONFIG["shuffle_seed"]).shuffle(jobs)
         log(f"{len(jobs)} jobs")
         try:
             asyncio.run(run_jobs(jobs, CONFIG.get("concurrency", 2), deadline))

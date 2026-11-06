@@ -47,6 +47,7 @@ def main() -> None:
     ap.add_argument("--deadline-hours", type=float, default=10.5)
     ap.add_argument("--slug", default="g4agent-eval")
     ap.add_argument("--bench", action="store_true", help="decode microbenchmark after startup")
+    ap.add_argument("--shuffle-seed", type=int, help="run attempts in a seeded random order")
     ap.add_argument("--skip-done", type=Path, action="append", default=[],
                     help="results.jsonl of an earlier run: attempts already in it are not rerun")
     args = ap.parse_args()
@@ -61,6 +62,7 @@ def main() -> None:
         "repeats": args.repeats,
         "deadline_hours": args.deadline_hours,
         "bench": args.bench,
+        "shuffle_seed": args.shuffle_seed,
     }
     if args.skip_done:
         done = {(r["variant"], r["instance_id"], r["rep"])
