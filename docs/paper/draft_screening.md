@@ -246,10 +246,10 @@ checking did not translate into success.
 
 ## Reproducibility
 
-Run files, the 32 prompts, the analysis and exploratory scripts and the pre-registration with
-SHA-256 hashes are in the repository [link], whose history shows the pre-registration committed
-before the runs. [Per-attempt records (task, configuration, outcome, obedience features, no task
-text) and a CPU script that reproduces every number: to be released.] The public tasks are not
+Run files, the 32 prompts, the scripts and the pre-registration with SHA-256 hashes are at
+https://github.com/matisdsp/gemma-4-developer-agent, whose history shows the pre-registration
+committed before the main run. One record per attempt (task, configuration, outcome, obedience
+features, no task text) and a CPU script reproduce every number. The public tasks are not
 redistributed. All runs used the free Kaggle GPU quota, about 17 hours of 4×L4.
 
 ## Use of AI tools
