@@ -3,9 +3,8 @@
 ## Abstract
 
 Small coding agents are tuned with prompt recipes: run the tests, reproduce the bug first, compile
-after each edit, show an example. At the task success rates of the model studied here, a paired
-A/B comparison on 40 tasks has a 90% interval of ±7.6 points, too wide to judge such recipes one at
-a time. We screened eight recipes at once for Gemma 4 E4B in the official harness of the Gemma 4
+after each edit, show an example. A paired A/B comparison on 40 tasks has a 90% interval of about
+±7.6 points, too wide to judge such recipes one at a time. We screened eight recipes at once for Gemma 4 E4B in the official harness of the Gemma 4
 Developer Agent competition, with a pre-registered 2^(8-3) fractional factorial design: 32
 configurations on 72 tasks, 2,304 attempts, each recipe compared on 1,152 attempts per side. The
 agent resolved 11.7% of attempts. No recipe raised that rate: every upper 90% bound is at most +1.5
@@ -17,10 +16,9 @@ exploratory analyses, 81% of attempts whose last test run was green still failed
 
 ## 1. Introduction
 
-Agents that run on one local GPU use small models, and small models are steered with words. Public
-recipes for coding agents are lists of instructions: reproduce the issue before editing, run the
-closest test file, never submit without checking, compile after each edit. Each is cheap to add,
-plausible, and usually justified by a single comparison.
+Agents that run on one local GPU use small models, steered with words: reproduce the issue
+before editing, run the closest test file, never submit without checking. Each recipe is cheap to
+add, plausible, and usually justified by a single comparison.
 
 Single comparisons cannot carry that weight. Outcomes are binary per task, and runs of the same
 agent on the same tasks differ: in this competition, byte-identical bundles scored 0.18 and 0.13
@@ -38,30 +36,23 @@ that is followed but useless call for different responses, we also measure from 
 the agent obeys each rule. Design, analysis script and reading rules were frozen and hashed before
 the first attempt.
 
-The contributions are:
-
-- a pre-registered screening of eight recipes for a 4B coding agent, in which no recipe raises the
-  resolved rate: every upper 90% bound is at most +1.5 points;
-- a separation of obedience from effect: two rules are followed far more often when given, one
-  partly, two are ignored, and none of them helps;
-- an exploratory account of why: the agent's green test runs barely predict the hidden tests, and
-  the task explains 58% of the outcome variance;
-- a reusable design and analysis for screening harness changes at the cost of one comparison.
+We contribute a pre-registered screening in which no recipe raises the resolved rate, a
+separation of obedience from effect, an exploratory account of why (green test runs barely predict
+the hidden tests; the task explains 58% of the variance), and a reusable design for screening
+harness changes at the cost of one comparison.
 
 ## 2. Setting
 
-**Harness.** The competition scores declarative agents: YAML files, prompts and optional
-adapters, compiled by the organisers into a Google ADK agent that runs one Gemma 4 model behind
-vLLM. The agent receives a GitHub issue and a repository, works through tools (`run_command`,
-`read_file`, `edit_file`, `write_file`, `get_status`, `submit_patch`), and is scored SWE-bench
-style: hidden tests must pass on its patch.
+**Harness.** The competition compiles declarative agents (YAML, prompts, optional adapters) into
+a Google ADK agent running one Gemma 4 model behind vLLM. Given a GitHub issue and a repository, the
+agent works through six tools and is scored SWE-bench style: hidden tests must pass on its patch.
 
 **Model.** Gemma 4 E4B in the scorer's quantised checkpoint (W4A16). With E2B, it is one of the
 two models eligible for the competition's small-model prize.
 
-**Base prompt.** All configurations share a structured system prompt of about 750 words: hard
+**Base prompt.** All configurations share a structured system prompt of about 840 words: hard
 limits (36 tool calls, 10 minutes, no edits to tests), a call plan, a procedure (locate, edit,
-verify, submit) and decision rules. The recipes add to it or change parts of it.
+verify, submit) and decision rules. Recipes add to it or change parts of it.
 
 **Tasks.** Of the 129 public tasks, 75 pass with their reference patch in the harness's subprocess
 sandbox. In a control where the patch only adds an unrelated file, three of them still pass their
@@ -100,10 +91,9 @@ only the steps of active recipes. Each configuration ran once on each task: 2,30
 three kernels of 24 tasks stratified by repository, in a seeded random order.
 
 **Pre-registration.** Hypotheses, reading rules, predictions, run files and the analysis script
-were committed with their SHA-256 before any attempt. A pilot of 96 attempts on three tasks,
-excluded from the analysis, checked the infrastructure and the obedience measures with comparisons
-of resolved tasks hidden; it changed one measure, obedience to spec first. There was no deviation
-from the pre-registration; analyses beyond it are labelled exploratory.
+were committed with their SHA-256 before any attempt. An excluded pilot of 96 attempts checked the
+infrastructure and the obedience measures, with resolved comparisons hidden, and changed one
+measure. There was no deviation; analyses beyond the registration are labelled exploratory.
 
 **Analysis.** For each recipe and task, the effect is the mean outcome with the recipe on minus
 the mean with it off; the reported effect is the mean over tasks. Intervals are 90% task bootstraps
@@ -157,22 +147,20 @@ of the attempts given it. A reproduction script runs before the edit in 2.5% of 
 write one, and spec first barely moves its measure (29% to 33%). None of these changes reaches the
 resolved rate.
 
-**Costs.** Recipes that make the agent check more cost time: imposed verification adds 22 seconds
-per attempt (90% interval 14 to 31), the worked example 17, the useful test 14. The thinking budget
-of 256 tokens cuts 79 completion tokens per call and saves 16 seconds per attempt (7 to 25), about
-8% of the mean, but leaves an empty patch 3.4 points more often. Unexpectedly, the useful-test rule
-raises syntax-broken final patches by 3.3 points (1.4 to 5.4), one of 24 secondary contrasts,
-unadjusted.
+**Costs.** Checking costs time: imposed verification adds 22 seconds per attempt (90% interval 14
+to 31), the worked example 17, the useful test 14. The thinking budget of 256 saves 16 seconds (7 to
+25), about 8% of the mean, but leaves an empty patch 3.4 points more often. Unexpectedly, the
+useful-test rule raises syntax-broken final patches by 3.3 points (1.4 to 5.4), one of 24 secondary
+contrasts, unadjusted.
 
-**Predictions.** Of the eight registered predictions, four held: reproduce first and spec first
-show no effect beyond 3 points, the thinking budget too while saving time, and the compile check is
-unresolved, which the prediction allowed. Four failed: the useful test and the worked example were
-expected to help, imposed verification to help or stay unresolved, and temperature 0.7 to hurt.
+**Predictions.** Four of eight registered predictions held (reproduce first, spec first, thinking
+budget, compile check) and four failed: the useful test and the worked example were expected to
+help, imposed verification to help or stay unresolved, and temperature 0.7 to hurt.
 
-**Exploratory: the worked example.** The example always shows a real test file being run and
-passing. It raised the share of pytest calls that run a test from 50% to 67% without the useful-test
-rule, and from 68% to 79% with it; among attempts given the compile rule, it raised compile
-obedience from 9% to 21%. The agent copies the demonstration more than it reads the rule list.
+**Exploratory: the worked example.** The example always shows a real test file run and passing.
+It raised the share of pytest calls that run a test from 50% to 67% without the useful-test rule
+and from 68% to 79% with it, and compile obedience from 9% to 21% among attempts given that rule:
+the agent copies the demonstration more than it reads the rules.
 
 **Exploratory: green checks.** 855 attempts ended on a green test run, and 81% of them failed the
 hidden tests. The useful-test rule raised green last checks from 28% to 46% of attempts, while the
@@ -209,18 +197,16 @@ configuration, and the configuration spread is what chance alone predicts. Recip
 on the 27 tasks that are sometimes solved: raising the average by 3 points would require about 8
 points more success on each of them.
 
-**Practical advice.** On top of a structured base prompt, these eight recipes are not worth tuning
-for E4B. Whether they help a minimal prompt is open: a full scaffold helped E4B against a minimal
-one [6]. Judge a rule on two outcomes, whether it is obeyed and whether it helps, since "no effect"
-means something different in each case. The thinking budget of 256 trades 16 seconds per attempt
-against more empty patches and an effect between -1.6 and +0.5 points, a trade worth weighing
-under a global time limit. And a fractional factorial screen costs one well-powered comparison
-while measuring many changes; the design and scripts transfer to other agents.
+**Practical advice.** On top of a structured base prompt, these recipes are not worth tuning for
+E4B; whether they help a minimal prompt is open [6]. Judge a rule on whether it is obeyed and
+whether it helps: "no effect" means something different in each case. Under a global time limit,
+the thinking budget of 256 trades 16 seconds per attempt against more empty patches. A fractional
+factorial screen costs one well-powered comparison, and the design transfers to other agents.
 
 ## 6. Threats to validity
 
-**Base prompt.** Effects are measured on top of a long structured prompt. Recipes that duplicate
-its guidance may have little left to add; on a minimal prompt they could matter.
+**Base prompt.** Effects are measured on top of a long structured prompt; on a minimal prompt the
+recipes could matter more.
 
 **Tasks.** All 72 tasks were used in earlier work, and the useful-test and compile-check recipes
 came from traces on them; recipes suggested by these tasks still failed on them. The tasks come
@@ -240,16 +226,16 @@ help some tasks and hurt others.
 ## 7. Related work
 
 **Evaluation noise.** A repeated-run study attributes 53% of outcome variance to the issue, 42% to
-the run and 4.6% to the model-issue interaction [1]. Across harnesses, the same lightweight model
-differs by up to 44 points, with one attempt per pairing [2]. A position paper argues that the
-harness can matter more than the model and calls for disclosing it and decomposing variance [3]. We
-apply a factorial protocol inside one harness.
+the run and 4.6% to the model-issue interaction [1]. The same lightweight model differs by up to 44
+points across harnesses, with one attempt per pairing [2], and a position paper calls for
+disclosing the harness and decomposing variance [3]. We apply a factorial protocol inside one
+harness.
 
-**Prompt and scaffold studies.** Instruction files and context files show small or no effects for
-frontier agents [4, 5]. In this competition, a full scaffold helped only E4B [6]; a 31B agent
-followed a prompt rule 20 times out of 20 with no gain in solved tasks [7]; and twenty
-interventions were indistinguishable from noise for a 31B agent [8]. We separate eight components
-at once, for the smallest model, with intervals tight enough to bound them.
+**Prompt and scaffold studies.** Instruction and context files show small or no effects for
+frontier agents [4, 5]. In this competition, a full scaffold helped only E4B [6], a 31B agent
+followed a prompt rule 20 times out of 20 with no gain [7], and twenty interventions were
+indistinguishable from noise [8]. We separate eight components at once, with intervals tight enough
+to bound them.
 
 **What helps repair.** Specification information is worth more than test feedback for repairing
 failed states [9]. An execution layer that delays edits until evidence is gathered helps [10],
