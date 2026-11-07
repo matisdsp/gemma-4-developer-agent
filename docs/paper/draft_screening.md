@@ -34,7 +34,7 @@ once, so every attempt informs every recipe: each comparison uses 1,152 attempts
 within tasks, and gets an interval of about ±1.5 points. Because a rule that is ignored and a rule
 that is followed but useless call for different responses, we also measure from the traces whether
 the agent obeys each rule. Design, analysis script and reading rules were frozen and hashed before
-the first attempt.
+the main run.
 
 We contribute a pre-registered screening in which no recipe raises the resolved rate, a
 separation of obedience from effect, an exploratory account of why (green test runs barely predict
@@ -91,7 +91,7 @@ only the steps of active recipes. Each configuration ran once on each task: 2,30
 three kernels of 24 tasks stratified by repository, in a seeded random order.
 
 **Pre-registration.** Hypotheses, reading rules, predictions, run files and the analysis script
-were committed with their SHA-256 before any attempt. An excluded pilot of 96 attempts checked the
+were committed with their SHA-256 before the main run. An excluded pilot of 96 attempts checked the
 infrastructure and the obedience measures, with resolved comparisons hidden, and changed one
 measure. There was no deviation; analyses beyond the registration are labelled exploratory.
 
@@ -101,7 +101,7 @@ the mean with it off; the reported effect is the mean over tasks. Intervals are 
 Holm-adjusted over the eight primary tests. Reading rules: a recipe **helps** or **hurts** if its
 interval excludes zero and its Holm p is below 0.05; it has **no effect beyond 3 points** if its
 interval lies within (-3, +3); otherwise it is **unresolved**. Three points is a fifth of the
-expected base rate, or 1.7 tasks of 58 on the leaderboard.
+base rate we expected (15%), or 1.7 tasks of 58 on the leaderboard.
 
 **Obedience.** Pattern-based measures from the tool calls of each trace: a reproduction script run
 before the first edit; a test or script run after it; the share of pytest calls whose summary
@@ -192,8 +192,8 @@ ignored. A harness can enforce such steps rather than ask for them: linting on e
 execution layer that blocks edits until evidence is gathered [10], or structure instead of prompt
 rules [7]. We did not test enforcement.
 
-**Most of the outcome is set by the task.** Forty-four tasks are beyond the model in every
-configuration, and the configuration spread is what chance alone predicts. Recipes act, if at all,
+**Most of the outcome is set by the task.** Forty-four tasks were never resolved in 32 attempts,
+one per configuration, and the configuration spread is what chance alone predicts. Recipes act, if at all,
 on the 27 tasks that are sometimes solved: raising the average by 3 points would require about 8
 points more success on each of them.
 
