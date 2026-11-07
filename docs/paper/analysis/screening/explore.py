@@ -14,6 +14,7 @@ explains, and outcomes by repository. It reuses the parsing of the frozen analys
 import argparse
 import importlib.util
 import json
+import random
 import statistics as st
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -78,10 +79,54 @@ def main():
     between_config = sum(len(v) * (st.mean(v) - grand) ** 2 for v in config_mean.values())
     out["variance_share"] = {"task": between_task / total, "eight_recipes": explained_recipes / total,
                              "configuration": between_config / total}
-    # what a configuration spread looks like if configurations did not matter at all
-    p, n = grand, len(rows) // len(config_mean)
     out["config_sd_points"] = 100 * st.pstdev(st.mean(v) for v in config_mean.values())
-    out["config_sd_points_if_no_effect"] = 100 * (p * (1 - p) / n) ** 0.5
+    # Null with the 72 tasks held fixed (every configuration ran the same tasks): each attempt is
+    # a coin with its task's success rate, whatever the configuration.
+    rate = {t: task_mean[t] for t in tasks}
+    rng = random.Random(20261107)
+    sims_sd, sims_cfg, sims_rec = [], [], []
+    for _ in range(2000):
+        sim = [(r["variant"], 1.0 if rng.random() < rate[r["task"]] else 0.0) for r in rows]
+        g = st.mean(v for _, v in sim)
+        tot = sum((v - g) ** 2 for _, v in sim) or 1.0
+        by = defaultdict(list)
+        for name, v in sim:
+            by[name].append(v)
+        sims_sd.append(100 * st.pstdev(st.mean(v) for v in by.values()))
+        sims_cfg.append(sum(len(v) * (st.mean(v) - g) ** 2 for v in by.values()) / tot)
+        rec = 0.0
+        for recipe in recipes:
+            on = [v for name, v in sim if design[name][recipe]]
+            off = [v for name, v in sim if not design[name][recipe]]
+            rec += len(on) * (st.mean(on) - g) ** 2 + len(off) * (st.mean(off) - g) ** 2
+        sims_rec.append(rec / tot)
+    sims_sd.sort()
+    out["config_sd_null_tasks_fixed"] = {"median": sims_sd[1000], "p05": sims_sd[100],
+                                         "p95": sims_sd[1900],
+                                         "p_at_least_observed": sum(x >= out["config_sd_points"]
+                                                                    for x in sims_sd) / 2000}
+    out["variance_share_null"] = {"configuration": st.mean(sims_cfg),
+                                  "eight_recipes": st.mean(sims_rec)}
+    # half-width of a paired A/B on 40 tasks, one attempt per arm, at this study's task rates
+    out["ab_40_tasks_halfwidth_points"] = 100 * 1.645 * (
+        st.mean(2 * q * (1 - q) for q in rate.values()) / 40) ** 0.5
+    green = [r for r in rows if r.get("last_pytest_green")]
+    out["green_last_check"] = {"attempts": len(green),
+                               "failed_hidden_tests": 1 - mean(r["resolved"] for r in green)}
+    out["useful_test_split"] = {
+        str(level): {"green_last": mean(bool(r.get("last_pytest_green")) for r in rows
+                                        if design[r["variant"]]["useful_test"] == level),
+                     "resolved": mean(r["resolved"] for r in rows
+                                      if design[r["variant"]]["useful_test"] == level)}
+        for level in (False, True)}
+    out["example_by_useful_test"] = {
+        f"useful_test={int(f)},example={int(h)}": mean(
+            r.get("pytest_runs_tests") for r in rows if design[r["variant"]]["useful_test"] == f
+            and design[r["variant"]]["worked_example"] == h)
+        for f in (False, True) for h in (False, True)}
+    out["compile_obedience_by_example"] = {
+        str(h): mean(r.get("compile_after_edit") for r in rows if design[r["variant"]]["compile_check"]
+                     and design[r["variant"]]["worked_example"] == h) for h in (False, True)}
     out["config_range_points"] = [100 * min(st.mean(v) for v in config_mean.values()),
                                   100 * max(st.mean(v) for v in config_mean.values())]
 

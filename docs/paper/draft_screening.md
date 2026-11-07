@@ -1,135 +1,134 @@
-# Obeyed but Not Helped: A Pre-registered Factorial Screening of Eight Prompt Recipes for a 4B Coding Agent
+# Prompt Recipes Do Not Help a 4B Coding Agent, Even When It Follows Them: A Pre-registered Factorial Screening
 
 ## Abstract
 
-Small coding agents are tuned with prompt recipes: run the tests, reproduce the bug first, check
-that the code compiles, show an example. A single A/B comparison cannot tell whether such a recipe
-works: on 40 tasks its 90% interval spans about ±9 points, wider than most claimed effects. We
-screen eight recipes at once for Gemma 4 E4B in the official harness of the Gemma 4 Developer Agent
-competition, with a pre-registered 2^(8-3) fractional factorial design: 32 configurations, 72
-tasks, 2,304 attempts, each recipe measured on all of them. We also measure whether the agent
-follows each rule. The agent resolves 11.7% of attempts. Six recipes have no effect beyond 3
-points, with 90% intervals between -2.4 and +1.5 points; the other two, temperature 0.7 and a
-compile check, are unresolved and lean negative. The agent often obeys: a rule that zero collected
-tests verify nothing raises the share of its pytest calls that run a test from 59% to 74%, and
-imposed verification raises checks after the edit from 78% to 93%, with no gain in resolved
-attempts. The task explains 58% of the outcome variance; the eight recipes together, 0.2%.
+Small coding agents are tuned with prompt recipes: run the tests, reproduce the bug first, compile
+after each edit, show an example. At the task success rates of the model studied here, a paired
+A/B comparison on 40 tasks has a 90% interval of ±7.6 points, too wide to judge such recipes one at
+a time. We screened eight recipes at once for Gemma 4 E4B in the official harness of the Gemma 4
+Developer Agent competition, with a pre-registered 2^(8-3) fractional factorial design: 32
+configurations on 72 tasks, 2,304 attempts, each recipe compared on 1,152 attempts per side. The
+agent resolved 11.7% of attempts. No recipe raised that rate: every upper 90% bound is at most +1.5
+points, six recipes are bounded within ±3 points, and two (temperature 0.7, a compile check) lean
+negative but remain unresolved. Behaviour did change. Told that zero collected tests verify
+nothing, the agent ran real tests in 74% of its pytest calls instead of 59%; imposed verification
+raised checks after the edit from 78% to 93%. A reproduction rule was ignored (2.5%). In
+exploratory analyses, 81% of attempts whose last test run was green still failed the hidden tests.
 
 ## 1. Introduction
 
 Agents that run on one local GPU use small models, and small models are steered with words. Public
 recipes for coding agents are lists of instructions: reproduce the issue before editing, run the
-closest test file, never submit without checking, compile after each edit. Each recipe is cheap to
-add and plausible, and each is usually justified by a single comparison.
+closest test file, never submit without checking, compile after each edit. Each is cheap to add,
+plausible, and usually justified by a single comparison.
 
-Single comparisons cannot carry that weight. Outcomes are binary per task, and the same agent
-resubmitted draws different tasks: in this competition, byte-identical bundles scored 0.18 and
-0.13 on the public leaderboard, and identical files differed by up to six of 58 tasks. In our own
-simulation from per-task success rates of the same model, a paired comparison of two prompts on 40
-tasks has a 90% interval of ±8.6 points. Two consequences follow. Teams report that most
-interventions are indistinguishable from noise, and studies that do reach significance test whole
-bundles: a minimal against a maximal scaffold moved E4B from 10.0% to 15.4% in one entry, without
-saying which component did it.
+Single comparisons cannot carry that weight. Outcomes are binary per task, and runs of the same
+agent on the same tasks differ: in this competition, byte-identical bundles scored 0.18 and 0.13
+on the public leaderboard [8], and 29 draws of six identical file sets varied with a standard
+deviation of 1.56 tasks out of 58 [14]. At the task rates of the model studied here, a paired
+comparison of two prompts on 40 tasks, one attempt per arm, has a 90% interval of ±7.6 points. Two
+consequences follow: teams find most interventions indistinguishable from noise [8], and the
+significant results compare whole bundles. A maximal against a minimal scaffold raised E4B from
+10.0% to 15.4% [6], without saying which component did it.
 
 We screen eight recipes in one experiment. A fractional factorial design varies all of them at
-once, so that every attempt informs every recipe, and the comparison for each recipe uses 1,152
-attempts on each side, paired within tasks. With the budget of a large A/B test, each recipe gets
-an interval of about ±1.5 points. Because a recipe that is ignored and a recipe that is followed
-but useless call for different responses, we also measure, from the traces, whether the agent
-obeys each rule. The design, the analysis script and the reading of results were frozen and
-hashed before the first attempt.
+once, so every attempt informs every recipe: each comparison uses 1,152 attempts per side, paired
+within tasks, and gets an interval of about ±1.5 points. Because a rule that is ignored and a rule
+that is followed but useless call for different responses, we also measure from the traces whether
+the agent obeys each rule. Design, analysis script and reading rules were frozen and hashed before
+the first attempt.
 
 The contributions are:
 
-- a pre-registered screening of eight recipes for a 4B coding agent, in which none moves the
-  resolved rate by more than 3 points;
-- a separation of obedience from effect: three rules are followed far more often when given,
-  and none of them changes the outcome;
-- a measure of where the variance lies: 58% with the task, 0.7% with the 32 configurations, and
-  44 of 72 tasks never resolved by any configuration;
+- a pre-registered screening of eight recipes for a 4B coding agent, in which no recipe raises the
+  resolved rate: every upper 90% bound is at most +1.5 points;
+- a separation of obedience from effect: two rules are followed far more often when given, one
+  partly, two are ignored, and none of them helps;
+- an exploratory account of why: the agent's green test runs barely predict the hidden tests, and
+  the task explains 58% of the outcome variance;
 - a reusable design and analysis for screening harness changes at the cost of one comparison.
 
 ## 2. Setting
 
-**Harness.** The Gemma 4 Developer Agent competition scores declarative agents: YAML files,
-prompts and optional adapters, compiled by the organisers into a Google ADK agent that runs one
-Gemma 4 model behind vLLM. The agent receives a GitHub issue and a repository, works through tools
-(`run_command`, `read_file`, `edit_file`, `write_file`, `get_status`, `submit_patch`), and is scored
-SWE-bench style: hidden tests must pass on its patch.
+**Harness.** The competition scores declarative agents: YAML files, prompts and optional
+adapters, compiled by the organisers into a Google ADK agent that runs one Gemma 4 model behind
+vLLM. The agent receives a GitHub issue and a repository, works through tools (`run_command`,
+`read_file`, `edit_file`, `write_file`, `get_status`, `submit_patch`), and is scored SWE-bench
+style: hidden tests must pass on its patch.
 
-**Model.** Gemma 4 E4B, the smallest model eligible for the competition's small-model prize, in
-the quantised checkpoint used by the scorer (W4A16).
+**Model.** Gemma 4 E4B in the scorer's quantised checkpoint (W4A16). With E2B, it is one of the
+two models eligible for the competition's small-model prize.
+
+**Base prompt.** All configurations share a structured system prompt of about 750 words: hard
+limits (36 tool calls, 10 minutes, no edits to tests), a call plan, a procedure (locate, edit,
+verify, submit) and decision rules. The recipes add to it or change parts of it.
 
 **Tasks.** Of the 129 public tasks, 75 pass with their reference patch in the harness's subprocess
-sandbox. We ran a control in which the patch adds an unrelated file: three tasks pass their hidden
-tests with it and were excluded, as they cannot discriminate. The remaining 72 tasks come from
-fastapi (29) and rich (43).
+sandbox. In a control where the patch only adds an unrelated file, three of them still pass their
+hidden tests; they cannot discriminate and were excluded. The remaining 72 come from fastapi (29)
+and rich (43).
 
-**Stack.** All attempts ran in private Kaggle kernels on 4×L4 GPUs with the scorer's vLLM
-settings (tensor parallel 4, bfloat16, the gemma4 tool and reasoning parsers, 32k context), the
-official harness, and eight attempts in flight. Each attempt had 36 tool calls and 10 minutes. The
-scorer runs tasks one at a time at 7 to 8 minutes; eight concurrent attempts slow decoding from 8.6
-to 11.4 ms per token, and the longer cap compensates. In the pilot, 1 of 96 attempts reached it.
+**Stack.** All attempts ran in private Kaggle kernels on 4×L4 GPUs with the scorer's vLLM settings
+(tensor parallel 4, bfloat16, the gemma4 tool and reasoning parsers, 32k context), the official
+harness, and eight attempts in flight. The scorer runs tasks one at a time with 7 to 8 minutes;
+concurrency slows decoding from 8.6 to 11.4 ms per token, and the 10-minute cap compensates.
 
 ## 3. Recipes, design and analysis
 
-**Recipes.** Each recipe has two levels (Table 1). Six are instructions in the system prompt; two
-are sampling settings. Each comes from a published claim or from our earlier traces of the same
-agent.
+**Recipes.** Each recipe has two levels (Table 1): six are instructions, two are sampling
+settings, and each comes from a published claim or from our earlier runs of the same agent.
 
-| | Recipe | Off | On | Source of the claim |
+| | Recipe | Off | On | Source |
 |---|---|---|---|---|
-| A | Temperature 0.7 | 0.2 | 0.7 | 0.2 is the default of public top bundles; more diversity |
-| B | Thinking budget 256 | 4,096 tokens | 256 tokens | a public 31B bundle at 0.20 used 256 |
-| C | Spec first | absent | list names, messages, edge cases before acting | specification beats feedback (BRA) |
-| D | Reproduce first | absent | a script in /tmp that must fail before the edit | contested (ECLoop vs SWE-Doctor) |
-| E | Imposed verification | verify in at most 2-3 calls | no submission before a check; spend the budget checking | E4B stops early (Toeda) |
-| F | Useful test | `-k` and `tail` advised; pre-existing failures may be ignored | run the whole test file; zero tests is not a check | 24-45% of earlier E4B pytest calls ran no test |
-| G | Compile check | absent | `python -m py_compile` after every edit | 9-16% of earlier E4B attempts left syntax errors; linting on edit in SWE-agent |
-| H | Worked example | absent | one session on a made-up project | small agents act on what they are shown |
+| A | Temperature 0.7 | 0.2 | 0.7 | 0.2 in our earlier runs and public bundles |
+| B | Thinking budget 256 | 4,096 tokens | 256 tokens | a public 31B bundle at 0.20 used 256 [16] |
+| C | Spec first | absent | list names, messages, edge cases before acting | specification beats feedback [9] |
+| D | Reproduce first | absent | a script in /tmp that must fail before the edit | contested [10, 11] |
+| E | Imposed verification | verify in at most 2-3 calls | no submission before a check; spend the budget checking | E4B stops early [6] |
+| F | Useful test | add `-k`; failures from missing fixtures may be ignored | run the whole test file; zero tests is not a check; no such excuse | 24-45% of E4B pytest calls ran no test in our earlier runs |
+| G | Compile check | absent | `python -m py_compile` after every edit | 9-16% of earlier E4B attempts had syntax errors; linting on edit [12] |
+| H | Worked example | absent | one session on a made-up project | small agents act on what they are shown [15] |
 
-*Table 1. The eight recipes.*
+*Table 1. The eight recipes. Both levels of F pipe test output through `tail -40`.*
 
 **Design.** A 2^(8-3) fractional factorial of resolution IV: recipes A to E are crossed in full,
 and F = ABC, G = ABD, H = -ACDE. Each recipe is on in 16 of the 32 configurations, recipes are
-orthogonal, and no main effect is aliased with a two-way interaction. The two-way interactions of
-E and H with every other recipe are free of aliasing (13 of 28); the remaining ones are aliased in
-pairs or triples and are not interpreted. Prompts are assembled so that an inactive recipe leaves
-no trace, and the worked example shows only the steps of active recipes. Each configuration ran
-once on each task: 2,304 attempts, in three kernels of 24 tasks stratified by repository, in a
-seeded random order.
+orthogonal, and no main effect is aliased with a two-way interaction. The two-way interactions of E
+and H with every other recipe are unaliased (13 of 28); the others are aliased in pairs or triples
+and not interpreted. An inactive recipe leaves no trace in the prompt, and the worked example shows
+only the steps of active recipes. Each configuration ran once on each task: 2,304 attempts, in
+three kernels of 24 tasks stratified by repository, in a seeded random order.
 
-**Pre-registration.** The hypotheses, reading rules, predictions, run files and analysis script
-were committed with their SHA-256 before any attempt. A pilot of 96 attempts on three tasks, run
-beforehand and excluded, checked the infrastructure and the compliance measures with comparisons
-of resolved tasks hidden; it led to one change, a better measure of obedience to spec first.
+**Pre-registration.** Hypotheses, reading rules, predictions, run files and the analysis script
+were committed with their SHA-256 before any attempt. A pilot of 96 attempts on three tasks,
+excluded from the analysis, checked the infrastructure and the obedience measures with comparisons
+of resolved tasks hidden; it changed one measure, obedience to spec first. There was no deviation
+from the pre-registration; analyses beyond it are labelled exploratory.
 
-**Analysis.** For each recipe and task, the effect is the mean outcome of attempts with the
-recipe on minus the mean with it off; the reported effect is the mean over tasks. Intervals are
-90% task bootstraps (2,000 resamples); p values come from flipping the sign of task differences
-(10,000 permutations) and are Holm-adjusted over the eight primary tests. The pre-registered
-reading: a recipe **helps** or **hurts** if its interval excludes zero and its Holm p is below
-0.05; it has **no effect beyond 3 points** if its interval lies within (-3, +3); otherwise it is
-**unresolved**. Three points is a fifth of the expected base rate, and about two tasks of 58 on
-the leaderboard.
+**Analysis.** For each recipe and task, the effect is the mean outcome with the recipe on minus
+the mean with it off; the reported effect is the mean over tasks. Intervals are 90% task bootstraps
+(2,000 resamples); p values flip the sign of task differences (10,000 permutations) and are
+Holm-adjusted over the eight primary tests. Reading rules: a recipe **helps** or **hurts** if its
+interval excludes zero and its Holm p is below 0.05; it has **no effect beyond 3 points** if its
+interval lies within (-3, +3); otherwise it is **unresolved**. Three points is a fifth of the
+expected base rate, or 1.7 tasks of 58 on the leaderboard.
 
-**Obedience.** Measured from the tool calls in each trace: whether a reproduction script ran
-before the first edit; whether a test or script ran after it; the share of pytest calls whose
-summary reports at least one test run; whether `py_compile` ran after an edit; and, for spec
-first, whether the first message names at least three identifiers of the issue and runs to 600
-characters. These are pattern-based measures.
+**Obedience.** Pattern-based measures from the tool calls of each trace: a reproduction script run
+before the first edit; a test or script run after it; the share of pytest calls whose summary
+reports at least one test run; `py_compile` run after an edit; and, for spec first, a first message
+that names at least three identifiers of the issue and runs to 600 characters.
 
 ## 4. Results
 
-**Overall.** E4B resolved 11.7% of attempts (fastapi 16.5%, rich 8.5%), and 28 of the 72 tasks at
+**Overall.** E4B resolved 11.7% of attempts (fastapi 16.5%, rich 8.5%) and 28 of the 72 tasks at
 least once. 92% of attempts left a non-empty patch. Attempts took 192 seconds and 15.3 tool calls
-on average; 48 reached the time cap and 45 the tool-call cap. No attempt was lost to
-infrastructure.
+on average; the harness stopped 48 at the time cap and 45 at the tool-call cap. No attempt was lost
+to infrastructure.
 
-**No recipe helps.** Six recipes have no effect beyond 3 points (Figure 1, right; Table 2). Two
-are unresolved: temperature 0.7, whose interval reaches -3.1, and the compile check, whose
-interval excludes zero (-3.2 to -0.6 points; p = 0.023) but whose Holm-adjusted p is 0.18. No
-estimate is positive.
+**No recipe helps.** Six recipes have no effect beyond 3 points (Table 2, Figure 1). Two are
+unresolved: temperature 0.7, whose interval reaches -3.1, and the compile check, whose interval
+excludes zero (p = 0.023) but whose Holm-adjusted p is 0.18. No estimate is positive, and no upper
+bound exceeds +1.5 points.
 
 | Recipe | Effect (points) | 90% interval | Holm p | Reading |
 |---|---|---|---|---|
@@ -146,39 +145,46 @@ estimate is positive.
 
 ![Figure 1](figures/fig1_obeyed_helped.png)
 
-*Figure 1. Left: share of attempts that follow each rule, with the rule off and on. Right: effect
-of each recipe on resolved attempts, with 90% task-bootstrap intervals; the band marks ±3 points.*
+*Figure 1. Left: obedience with the rule off and on (share of attempts; for useful test, share of
+pytest calls that run at least one test). Right: effect on resolved attempts with 90%
+task-bootstrap intervals; the band marks ±3 points.*
 
-**The agent often obeys.** Three rules change behaviour substantially (Figure 1, left). Under the
-useful-test rule, the share of pytest calls that run at least one test rises from 59% to 74%,
-the last check is a real test 21 points more often, and an empty last check 12 points less often.
-Imposed verification raises checks after the edit from 78% to 93% and adds two tool calls after
-the edit. The compile check is followed in 15% of attempts that receive it. Two rules are nearly
-ignored: a reproduction script runs before the edit in 2.5% of attempts told to write one, and
-spec first barely moves our measure (29% to 33%). The worked example raises obedience to other
-rules: 13 points more pytest calls run a test, and 6 points more attempts compile after editing.
-None of these changes in behaviour shows up in the resolved rate.
+**Obedience.** Two rules change behaviour strongly. Under the useful-test rule, the share of
+pytest calls that run a test rises from 59% to 74%, the last check is a real test 21 points more
+often, and an empty last check 12 points less often. Imposed verification raises checks after the
+edit from 78% to 93% and adds two tool calls after the edit. The compile check is followed in 15%
+of the attempts given it. A reproduction script runs before the edit in 2.5% of attempts told to
+write one, and spec first barely moves its measure (29% to 33%). None of these changes reaches the
+resolved rate.
 
 **Costs.** Recipes that make the agent check more cost time: imposed verification adds 22 seconds
 per attempt (90% interval 14 to 31), the worked example 17, the useful test 14. The thinking budget
 of 256 tokens cuts 79 completion tokens per call and saves 16 seconds per attempt (7 to 25), about
-8% of the mean, with no measurable loss; it leaves an empty patch 3.4 points more often. One
-secondary contrast was unexpected: the useful-test rule raises syntax-broken final patches by 3.3
-points (1.4 to 5.4), one of 24 secondary contrasts and unadjusted.
+8% of the mean, but leaves an empty patch 3.4 points more often. Unexpectedly, the useful-test rule
+raises syntax-broken final patches by 3.3 points (1.4 to 5.4), one of 24 secondary contrasts,
+unadjusted.
 
-**Predictions.** We registered eight predictions. Three were right: reproduce first, spec first
-and the thinking budget have no effect beyond 3 points, and the thinking budget saves time. Three
-were wrong: we expected the useful test and the worked example to help, and imposed verification
-to help or remain unresolved. For temperature (predicted to hurt) and the compile check (predicted
-unresolved or helpful), the estimates lean negative and remain unresolved.
+**Predictions.** Of the eight registered predictions, four held: reproduce first and spec first
+show no effect beyond 3 points, the thinking budget too while saving time, and the compile check is
+unresolved, which the prediction allowed. Four failed: the useful test and the worked example were
+expected to help, imposed verification to help or stay unresolved, and temperature 0.7 to hurt.
 
-**Exploratory: where the variance lies.** No clear two-way interaction reaches significance; the
-largest, compile check by worked example, is -1.6 points (-2.8 to -0.4; p = 0.052, one of 13). The
-task explains 58.5% of the variance of attempt outcomes; the 32 configurations, 0.7%; the main
-effects of the eight recipes, 0.2%. The standard deviation of the 32 configuration means, 2.7
-points, is below the 3.8 points that sampling alone would produce if configurations did not
-matter. Figure 2 shows why: 44 tasks are never resolved by any configuration, one is always
-resolved, and 27 fall in between.
+**Exploratory: the worked example.** The example always shows a real test file being run and
+passing. It raised the share of pytest calls that run a test from 50% to 67% without the useful-test
+rule, and from 68% to 79% with it; among attempts given the compile rule, it raised compile
+obedience from 9% to 21%. The agent copies the demonstration more than it reads the rule list.
+
+**Exploratory: green checks.** 855 attempts ended on a green test run, and 81% of them failed the
+hidden tests. The useful-test rule raised green last checks from 28% to 46% of attempts, while the
+resolved rate stayed at 12.2% against 11.3%.
+
+**Exploratory: where the variance lies.** No two-way interaction survives correction; the largest
+is imposed verification by reproduce first, +1.9 points (0.0 to 3.9; p = 0.14, one of 13). The task
+explains 58.5% of the variance of attempt outcomes. The 32 configurations explain 0.69%, against
+0.56% expected if configurations did not matter at all; the main effects of the eight recipes,
+0.18% against 0.14%. The standard deviation of configuration means is 2.7 points, inside the 1.9 to
+2.9 range that chance alone produces with these tasks. Figure 2 shows the structure: 44 tasks are
+never resolved, one always, and 27 sometimes.
 
 ![Figure 2](figures/fig2_task_spread.png)
 
@@ -186,100 +192,99 @@ resolved, and 27 fall in between.
 
 ## 5. Discussion
 
-**Obedience is not competence.** The recipes do what they say: the agent runs real tests, checks
-after editing and, shown an example, follows the rules more often. What changes is the process,
-not the result. For a model of this size, the instruction-following channel works, and the
-competence it would need to turn better checks into better patches is not there. A test that
-fails tells the agent that its patch is wrong, not how to fix it.
+**The process changed, the outcome did not.** The rules worked as instructions: more real tests,
+more checks after editing, more green test runs. The traces suggest why this did not help. The
+agent checks its patch against existing test files, which wrong patches also pass; the hidden tests
+encode the behaviour the issue asks for, which existing tests rarely cover. A green run is weak
+evidence: 81% of green attempts failed. Making the agent check more truthfully moved it from no
+evidence to weak evidence.
 
-**The task decides first.** Most of the outcome is fixed before any recipe applies. Forty-four
-tasks are beyond the model in every configuration, and on the others the configuration explains
-less than sampling noise. A recipe could still matter for a few tasks in the middle band, but its
-average effect over realistic task sets is bounded by this structure: with 27 tasks that are ever
-solved, a recipe would need to flip a large share of them to move the average by 3 points.
+**Ignored rules are harness candidates.** Reproducing first (2.5%) and compiling (15%) were mostly
+ignored. A harness can enforce such steps rather than ask for them: linting on every edit [12], an
+execution layer that blocks edits until evidence is gathered [10], or structure instead of prompt
+rules [7]. We did not test enforcement.
 
-**Verification is not yet the bottleneck at this size.** Recent accounts place the bottleneck of
-coding agents in verification rather than generation. For strong models with near-perfect test
-oracles that may hold. For a 4B model, the result here is consistent with the reverse: making the
-agent verify more, and more truthfully, did not help, which suggests that generation is the
-binding constraint. We did not test a perfect verifier, so this remains an interpretation.
+**Most of the outcome is set by the task.** Forty-four tasks are beyond the model in every
+configuration, and the configuration spread is what chance alone predicts. Recipes act, if at all,
+on the 27 tasks that are sometimes solved: raising the average by 3 points would require about 8
+points more success on each of them.
 
-**Practical advice.** For small agents, prompt tuning is unlikely to repay the effort; model size
-or training are the levers. One recipe is free: a thinking budget of 256 tokens saves about 8% of
-the time per attempt without measurable loss, which matters under a global time limit. A rule
-should be judged on two outcomes, whether it is obeyed and whether it helps, because "no effect"
-means something different in each case. And a fractional factorial screen costs the same as one
-well-powered comparison while measuring many changes at once; the design and scripts are reusable
-for any agent and harness.
+**Practical advice.** On top of a structured base prompt, these eight recipes are not worth tuning
+for E4B. Whether they help a minimal prompt is open: a full scaffold helped E4B against a minimal
+one [6]. Judge a rule on two outcomes, whether it is obeyed and whether it helps, since "no effect"
+means something different in each case. The thinking budget of 256 trades 16 seconds per attempt
+against more empty patches and an effect between -1.6 and +0.5 points, a trade worth weighing
+under a global time limit. And a fractional factorial screen costs one well-powered comparison
+while measuring many changes; the design and scripts transfer to other agents.
 
 ## 6. Threats to validity
 
-**Tasks.** All 72 tasks were used in our earlier work, and the useful-test and compile-check
-recipes came from reading traces on them. A recipe suggested by these tasks still failed on them,
-which makes overfitting an unlikely explanation of a null, but the tasks come from two
-repositories only, and the competition's hidden tasks come from private ones.
+**Base prompt.** Effects are measured on top of a long structured prompt. Recipes that duplicate
+its guidance may have little left to add; on a minimal prompt they could matter.
 
-**One model.** Results concern Gemma 4 E4B. A larger model may turn the same behaviours into
-better patches; one entry reports that a maximal scaffold helped E4B but not 12B or 26B, so
-effects need not grow with size either.
+**Tasks.** All 72 tasks were used in earlier work, and the useful-test and compile-check recipes
+came from traces on them; recipes suggested by these tasks still failed on them. The tasks come
+from two repositories, and the competition's hidden tasks from private ones.
+
+**One model.** Results concern E4B. A larger model might turn the same behaviours into better
+patches, though one entry found that a full scaffold helped E4B but not 12B or 26B [6].
 
 **Levels and measures.** Each recipe was tested at one wording and one level (temperature 0.7, not
-1.0; 256 thinking tokens, not none). Obedience measures are pattern-based; the one for spec first
-is weak, so "ignored" is less certain for that recipe.
+1.0; 256 thinking tokens, not none). Obedience measures are pattern-based; the one for spec first is
+weak, so "ignored" is less certain for that recipe.
 
-**Budget and concurrency.** The 10-minute cap with eight concurrent attempts differs from the
-scorer's sequential runs. Few attempts reached the cap (2%), but time-hungry recipes could behave
-differently under a tighter one.
-
-**Averages.** The primary test is an average over tasks. A recipe could help some tasks and hurt
-others in ways that cancel; the configuration spread, below sampling noise, makes large opposing
-effects unlikely but does not exclude small ones.
+**Budget and averages.** The 10-minute cap with eight concurrent attempts differs from the scorer's
+sequential runs; 2% of attempts hit it. The primary test is an average over tasks: a recipe could
+help some tasks and hurt others.
 
 ## 7. Related work
 
 **Evaluation noise.** A repeated-run study attributes 53% of outcome variance to the issue, 42% to
-the run and 4.6% to the model-issue interaction [1]; harness choice alone moves a lightweight
-model by up to 44 points, measured with one attempt per pairing [2]. A position paper calls for
-factorial protocols that report variance components [3]. We apply such a protocol inside one
-harness.
+the run and 4.6% to the model-issue interaction [1]. Across harnesses, the same lightweight model
+differs by up to 44 points, with one attempt per pairing [2]. A position paper argues that the
+harness can matter more than the model and calls for disclosing it and decomposing variance [3]. We
+apply a factorial protocol inside one harness.
 
 **Prompt and scaffold studies.** Instruction files and context files show small or no effects for
-frontier agents [4, 5]. In this competition, a minimal against maximal scaffold comparison helped
-only E4B [6], a pre-registered study found a prompt rule followed 20 times out of 20 by a 31B model
-with no gain in solved tasks [7], and a calibrated noise study found twenty interventions
-indistinguishable from noise for a 31B agent [8]. We separate eight components at once, for the
-smallest model, with intervals tight enough to bound their effects.
+frontier agents [4, 5]. In this competition, a full scaffold helped only E4B [6]; a 31B agent
+followed a prompt rule 20 times out of 20 with no gain in solved tasks [7]; and twenty
+interventions were indistinguishable from noise for a 31B agent [8]. We separate eight components
+at once, for the smallest model, with intervals tight enough to bound them.
 
 **What helps repair.** Specification information is worth more than test feedback for repairing
-failed states [9]. Delaying edits until evidence is gathered helps [10], while naive reproduction
-tests mislead [11]. Linting on edit helped frontier models in SWE-agent [12]. Verification is
-increasingly described as the hard part of agentic coding [13]. Our results add a small-model data
-point in which more and truer verification did not translate into success.
+failed states [9]. An execution layer that delays edits until evidence is gathered helps [10],
+while generated reproduction tests can mislead [11]. Linting on edit helped frontier models in
+SWE-agent [12]. A position paper argues that, for strong models, verifying solutions has become
+harder than generating them [13]. Our results add a small-model case in which more and truer
+checking did not translate into success.
 
 ## Reproducibility
 
-Run files, prompts for all 32 configurations, the analysis script and the pre-registration with
-SHA-256 hashes are in the repository [link to the public copy]. The public tasks are not
-redistributed; results are reported as aggregates, and per-attempt records can be regenerated
-from the competition data. All runs used the free Kaggle GPU quota.
+Run files, the 32 prompts, the analysis and exploratory scripts and the pre-registration with
+SHA-256 hashes are in the repository [link], whose history shows the pre-registration committed
+before the runs. [Per-attempt records (task, configuration, outcome, obedience features, no task
+text) and a CPU script that reproduces every number: to be released.] The public tasks are not
+redistributed. All runs used the free Kaggle GPU quota, about 17 hours of 4×L4.
 
 ## Use of AI tools
 
-[Statement to be written by the author, for example: experiments and analysis code were written
-with an AI coding assistant; the text was drafted with an AI assistant and revised by the author.]
+[Statement by the author.]
 
 ## References
 
-1. Hard Issue, Weak Model, or Bad Run? arXiv:2611.08285.
-2. Pairing Matters: Performance, Failures, and Efficiency in Lightweight Coding Agents. arXiv:2610.32131.
-3. Position paper on agent harnesses and factorial evaluation protocols. arXiv:2605.23950.
-4. Instruction Adherence in Coding Agent Configuration Files: A Factorial Study of Four File-Structure Variables. arXiv:2605.10039.
-5. Do Context Files Help Coding Agents? A Two-Agent Ablation Study on Real Repositories. arXiv:2607.27250.
+1. X. Shi et al. Hard Issue, Weak Model, or Bad Run? Rethinking Failure Prediction for Coding Agents. arXiv:2611.08285, 2026.
+2. L. Zhao et al. Pairing Matters: Performance, Failures, and Efficiency in Lightweight Coding Agents. arXiv:2610.32131, 2026.
+3. Y. Zhang et al. Stop Comparing LLM Agents Without Disclosing the Harness. arXiv:2605.23950, 2026.
+4. D. McMillan. Instruction Adherence in Coding Agent Configuration Files: A Factorial Study of Four File-Structure Variables. arXiv:2605.10039, 2026.
+5. P. Khatri. Do Context Files Help Coding Agents? A Two-Agent Ablation Study on Real Repositories. arXiv:2607.27250, 2026.
 6. T. Toeda. Scaffolding Helps the Smallest Gemma 4 Agent, Not the Larger Ones. Zenodo, doi:10.5281/zenodo.23813680, 2026.
-7. kb2326. Ask or Enforce? Pre-registered test of prompt rules vs agent structure for Gemma 4 31B. GitHub, 2026.
-8. fjcarmona78. Most Agent Improvements Are Noise: A Calibrated Study of a Gemma 4 31B Coding Agent. GitHub, 2026.
-9. Where Should a Stuck Agent Spend Its Next Tokens? Causal Attribution of Inference-Time Resources (BRA). arXiv:2610.28834.
-10. ECLoop. arXiv:2607.28815.
-11. SWE-Doctor. arXiv:2607.00990.
-12. J. Yang et al. SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering. arXiv:2405.15793.
-13. The Verification Horizon. arXiv:2606.26300.
+7. kb2326. Ask or Enforce? Pre-registered test of prompt rules vs agent structure for Gemma 4 31B under a fixed budget. https://github.com/kb2326/gemma4-ask-or-enforce, 2026.
+8. fjcarmona78. Most Agent Improvements Are Noise: A Calibrated Study of a Gemma 4 31B Coding Agent. https://github.com/fjcarmona78/gemma4-agent-noise-study, 2026.
+9. S. Lyu et al. Where Should a Stuck Agent Spend Its Next Tokens? Causal Attribution of Inference-Time Resources. arXiv:2610.28834, 2026.
+10. Y. Xu et al. Preventing Premature Commitment in Coding Agents with an Evidence-Conditioned Execution Layer. arXiv:2607.28815, 2026.
+11. Y. Guo et al. SWE-Doctor: Guiding Software Engineering Agents with Runtime Diagnosis from Multi-Faceted Bug Reproduction Tests. arXiv:2607.00990, 2026.
+12. J. Yang et al. SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering. arXiv:2405.15793, 2024.
+13. B. Wang et al. The Verification Horizon: No Silver Bullet for Coding Agent Rewards. arXiv:2606.26300, 2026.
+14. D. Afshar. Gemma 4: most-run public config averages 10/58. Kaggle notebook, https://www.kaggle.com/code/dariushafshar/gemma-4-most-run-public-config-averages-10-58, 2026.
+15. lspecian. gemma4-moving-failures. https://github.com/lspecian/gemma4-moving-failures, 2026.
+16. XingLing. Same 8 minutes, scores from 0.05 to 0.20. Kaggle notebook, https://www.kaggle.com/code/xingling666/same-8-minutes-scores-from-0-05-to-0-20, 2026.

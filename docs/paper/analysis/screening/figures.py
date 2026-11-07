@@ -17,7 +17,7 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.pyplot as plt
 
 SURFACE, INK, INK2, MUTED = "#fcfcfb", "#0b0b0b", "#52514e", "#898781"
 GRID, AXIS, BAND = "#e1e0d9", "#c3c2b7", "#f0efec"
@@ -61,14 +61,15 @@ def figure_obeyed_helped(analysis, explore, out):
             left.plot([off, on], [y, y], color=AXIS, linewidth=2, solid_capstyle="round", zorder=1)
             left.scatter([off], [y], s=60, color=OFF, edgecolor=SURFACE, linewidth=2, zorder=2)
             left.scatter([on], [y], s=60, color=ON, edgecolor=SURFACE, linewidth=2, zorder=3)
-            left.text(on + 2.5, y, f"{on:.0f}%", va="center", ha="left", fontsize=8.5, color=INK2)
+            left.text(on + 2.5, y, f"{on:.1f}%" if on < 10 else f"{on:.0f}%", va="center",
+                      ha="left", fontsize=8.5, color=INK2)
         else:
             left.text(2, y, NOT_A_RULE[key], va="center", ha="left", fontsize=8.5, color=MUTED,
                       style="italic")
     left.set_xlim(-4, 110)
     left.set_yticks(ys)
     left.set_yticklabels([label for _, label, _ in ROWS], fontsize=9.5, color=INK)
-    left.set_xlabel("Attempts that follow the rule (%)", fontsize=9, color=INK2)
+    left.set_xlabel("Obedience (%)", fontsize=9, color=INK2)
     left.set_title("Did the agent obey?", fontsize=10.5, color=INK, loc="left", pad=8)
     left.scatter([], [], s=60, color=OFF, label="rule off")
     left.scatter([], [], s=60, color=ON, label="rule on")
