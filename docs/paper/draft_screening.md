@@ -248,7 +248,7 @@ checking did not translate into success.
 
 Run files, the 32 prompts, the scripts and the pre-registration with SHA-256 hashes are at
 https://github.com/matisdsp/gemma-4-developer-agent, whose history shows the pre-registration
-committed before the main run. One record per attempt (task, configuration, outcome, obedience
+committed before the main run (commit 97bbbf5). One record per attempt (task, configuration, outcome, obedience
 features, no task text) and a CPU script reproduce every number. The public tasks are not
 redistributed. All runs used the free Kaggle GPU quota, about 17 hours of 4×L4.
 
