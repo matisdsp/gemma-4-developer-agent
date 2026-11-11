@@ -12,9 +12,9 @@ The agent resolved 11.7% of attempts. No recipe raised that rate: every upper 90
 lean negative but remain unresolved. Behaviour did change. Told that zero collected tests verify
 nothing, the agent's pytest calls ran tests 74% of the time instead of 59%; imposed verification
 raised checks after the edit from 78% to 93%. A rule to reproduce before editing was followed in
-2.5% of attempts. The best of the 32 configurations led the base prompt by 8 points; in a
-registered replication on 576 fresh attempts, by 1.4 (-1.4 to +4.2). In exploratory analyses, 81%
-of attempts whose last test run was green still failed the hidden tests.
+2.5% of the attempts given it. The best of the 32 configurations led the base prompt by 8 points;
+in a registered replication on 576 fresh attempts, by 1.4 (-1.4 to +4.2). In exploratory analyses,
+81% of attempts whose last test run was green still failed the hidden tests.
 
 ## 1. Introduction
 
@@ -22,14 +22,14 @@ Agents that run on one local GPU use small models, steered with words: reproduce
 editing, run the closest test file, never submit without checking. Each recipe is cheap to add,
 plausible, and usually justified by a single comparison.
 
-Single comparisons cannot carry that weight. Runs of the same agent on the same tasks differ: in
-this competition, byte-identical bundles scored 0.18 and 0.13 on the public leaderboard [8], and 29
-draws of six identical file sets varied with a standard deviation of 1.56 tasks out of 58 [14]. At
-the task rates of the model studied here, a paired comparison of two prompts on 40 tasks, one
-attempt per arm, has a 90% interval of ±7.6 points. Two consequences follow: one team found
-nineteen of twenty interventions indistinguishable from noise [8], and the significant results
-compare whole bundles. A maximal against a minimal scaffold raised E4B from 10.0% to 15.4% [6],
-without saying which component did it.
+Single comparisons cannot carry that weight. Runs of the same agent on the same tasks differ:
+byte-identical bundles scored 0.18 and 0.13 on the public leaderboard [8], and 29 draws of six
+identical file sets varied with a standard deviation of 1.56 tasks out of 58 [14]. At the task
+rates of the model studied here, a paired comparison of two prompts on 40 tasks, one attempt per
+arm, has a 90% interval of ±7.6 points. Two consequences follow: one team found nineteen of twenty
+interventions indistinguishable from noise [8], and the significant results compare whole bundles.
+A maximal against a minimal scaffold raised E4B from 10.0% to 15.4% [6], without saying which
+component did it.
 
 We screen eight recipes in one experiment. A fractional factorial design varies all of them at
 once, so every attempt informs every recipe: each comparison uses 1,152 attempts per side, paired
@@ -116,8 +116,8 @@ characters.
 
 **Overall.** E4B resolved 11.7% of attempts (fastapi 16.5%, rich 8.5%) and 28 of the 72 tasks at
 least once. 92% of attempts left a non-empty patch. Attempts took 192 seconds and 15.3 tool calls
-on average; 50 reached the time cap and 45 the tool-call cap. No attempt was lost to
-infrastructure, and identical patches always received the same verdict.
+on average; 50 ran the full 10 minutes and the harness stopped 45 at the tool-call cap. No attempt
+was lost to infrastructure, and identical patches always received the same verdict.
 
 **No recipe helps.** Six recipes have no effect beyond 3 points (Table 2, Figure 1). Two are
 unresolved: temperature 0.7, whose interval reaches -3.1, and the compile check, whose interval
@@ -161,8 +161,8 @@ temperature 0.7 to hurt.
 
 **Exploratory: the worked example.** The example always shows a real test file run and passing. It
 raised the share of pytest calls that run a test from 50% to 67% without the useful-test rule and
-from 68% to 79% with it, and compile obedience from 9% to 21% among attempts given that rule: the
-demonstration moves the agent about as much as the rule does.
+from 68% to 79% with it, and compile obedience from 9% to 21% among attempts given that rule: on
+these two measures, the demonstration moves the agent about as much as the rule does.
 
 **Exploratory: green checks.** 855 attempts ended on a green test run, and 81% of them failed the
 hidden tests, against 92% of the others (within tasks, green adds 6.2 points; 2.9 to 9.9). The
@@ -181,12 +181,12 @@ resolved, one always, and 27 sometimes (Figure 2).
 *Figure 2. Number of tasks by how many of the 32 configurations resolve them.*
 
 **Replication of the best configuration.** Configuration `s04` (spec first, useful test, worked
-example) resolved 15 of 72 tasks, against 9 for the base prompt; if configurations changed nothing,
-the best of 32 would reach 15 in 1.6% of simulations. The addendum registered four fresh attempts
-per task for both, 576 attempts. `s04` resolved 12.2% and the base prompt 10.8%: +1.4 points (-1.4
-to +4.2; p = 0.56), unresolved by the registered rule. The 8-point lead did not hold; up to 4
-points are not excluded. `s04` ended on a green test run in 53% of attempts against 21% and took 37
-seconds longer.
+example) resolved 15 of 72 tasks, against 9 for the base prompt (`reproduce.py` lists the 32
+configurations, from 6.9% to 20.8%); if configurations changed nothing, the best of 32 would reach
+15 in 1.6% of simulations. The addendum registered four fresh attempts per task for both, 576
+attempts. `s04` resolved 12.2% and the base prompt 10.8%: +1.4 points (-1.4 to +4.2; p = 0.56),
+unresolved by the registered rule. The 8-point lead did not hold; up to 4 points are not excluded.
+`s04` ended on a green test run in 53% of attempts against 21% and took 37 seconds longer.
 
 ## 5. Discussion
 
@@ -209,9 +209,8 @@ success on each of them.
 
 **Practical advice.** On top of a structured base prompt, these recipes are not worth tuning for
 E4B. Judge a rule on whether it is obeyed and whether it helps: "no effect" means something
-different in each case. Rerun the best of many configurations before believing it: here it lost 7
-of its 8 points. A fractional factorial screen costs one well-powered comparison, and the design
-transfers to other agents.
+different in each case.  Rerun the best of many configurations before believing it. A fractional
+factorial screen costs one well-powered comparison, and the design transfers to other agents.
 
 ## 6. Threats to validity
 
@@ -220,7 +219,7 @@ recipes could matter more.
 
 **Tasks.** All 72 tasks were used in earlier work, and the useful-test and compile-check recipes
 came from traces on them; recipes suggested by these tasks still failed on them. The tasks come
-from two repositories, and the competition's hidden tasks from private ones. Also, 12.6% of fastapi
+from two repositories, and the competition's hidden tasks from private ones. 12.6% of fastapi
 pytest calls stop on a module missing from the sandbox, which hampers checking there.
 
 **One model.** Results concern E4B; a larger model might turn the same behaviours into better
@@ -231,9 +230,9 @@ are pattern-based; the one for spec first is weak, so "ignored" is less certain 
 
 **Budget and averages.** The 10-minute cap with eight concurrent attempts differs from the scorer's
 sequential runs; 2% of attempts hit it. The runner's tool calls are synchronous: a slow command
-stalls the seven other attempts, so durations and time-cap stops are overstated, for all
-configurations alike. The primary test is an average over tasks: a recipe could help some tasks and
-hurt others.
+stalls the seven other attempts, so durations and time-cap stops are overstated; attempts ran in
+random order, which spreads the stalls over configurations. The primary test is an average over
+tasks: a recipe could help some tasks and hurt others.
 
 **Averaged effects.** Each effect is averaged over the other seven recipes, and no configuration
 has exactly one on: a recipe that helps only alone would be missed. All eight estimates are
@@ -266,8 +265,8 @@ are at https://github.com/matisdsp/gemma-4-developer-agent. The pre-registration
 is dated before the main run, but the date is self-declared: the repository became public
 afterwards. The addendum has an OpenTimestamps receipt anchored before its run ended. Records per
 attempt (no task text) and CPU scripts reproduce every number of Sections 4 to 6. The public tasks
-are not redistributed. The main run and the replication used about 21 hours of free Kaggle 4×L4
-quota.
+are not redistributed. The main run and the replication took about 21 hours of 4×L4 time on the
+free Kaggle quota.
 
 ## Use of AI tools
 
