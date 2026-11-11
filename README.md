@@ -11,8 +11,8 @@ E4B or E2B, int4) served by vLLM on 4x L4, with a 32k context and 12 hours for t
 
 ## The paper: prompt recipes for a 4B agent
 
-*Prompt Recipes Do Not Help a 4B Coding Agent, Even When It Follows Them: A Pre-registered Factorial
-Screening* ([draft](docs/paper/draft_screening.md)). Eight prompt recipes for Gemma 4 E4B, screened
+*Eight Recipes Did Not Help a 4B Coding Agent, Even When It Followed Them: A Pre-registered
+Factorial Screening* ([draft](docs/paper/draft_screening.md)). Eight prompt recipes for Gemma 4 E4B, screened
 in a 2^(8-3) fractional factorial design: 32 configurations, 72 tasks, 2,304 attempts.
 
 - Pre-registration, frozen before the main run, with the SHA-256 of every file it pins:
@@ -21,7 +21,8 @@ in a 2^(8-3) fractional factorial design: 32 configurations, 72 tasks, 2,304 att
   `scripts/make_screening.py`; the design matrix is `variants/screening/design.json`.
 - Exact run files of the three Kaggle kernels: `reports/runs/screening-sc{1,2,3}/run.py`; run log:
   `reports/ledger.jsonl`.
-- One record per attempt, without task text: `docs/paper/records/screening_attempts.csv`.
+- One record per attempt, without task text: `docs/paper/records/screening_attempts.csv`
+  (`screening_controls.csv` holds the counts read by `controls.py`).
 - Analysis: `docs/paper/analysis/screening/` (`analyze.py` is the frozen primary analysis,
   `explore.py` the exploratory numbers, `controls.py` the exploratory controls written after the
   results, `figures.py` the figures).
