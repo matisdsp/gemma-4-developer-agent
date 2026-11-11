@@ -23,13 +23,24 @@ in a 2^(8-3) fractional factorial design: 32 configurations, 72 tasks, 2,304 att
   `reports/ledger.jsonl`.
 - One record per attempt, without task text: `docs/paper/records/screening_attempts.csv`.
 - Analysis: `docs/paper/analysis/screening/` (`analyze.py` is the frozen primary analysis,
-  `explore.py` the exploratory numbers, `figures.py` the figures).
+  `explore.py` the exploratory numbers, `controls.py` the exploratory controls written after the
+  results, `figures.py` the figures).
+- Replication of the best configuration (`s04` against the base prompt `s00`, 576 fresh attempts):
+  [`docs/paper/preregistration_screening_addendum.md`](docs/paper/preregistration_screening_addendum.md),
+  written after the main results and frozen before its run, with an OpenTimestamps receipt next
+  to it (`ots verify`). Run file: `reports/runs/screening-rep1/run.py`. Records:
+  `docs/paper/records/replication_attempts.csv` and `replication_features.csv`. Analysis:
+  `replicate.py` (frozen with the addendum) and `replicate_obedience.py` (descriptive).
 
 ### Reproduce every number on CPU
 
 ```bash
 python3 -I docs/paper/analysis/screening/reproduce.py             # pre-registered analysis
 python3 -I docs/paper/analysis/screening/reproduce.py --explore   # exploratory numbers
+python3 -I docs/paper/analysis/screening/controls.py              # exploratory controls
+python3 -I docs/paper/analysis/screening/replicate.py             # replication, registered analysis
+python3 -I docs/paper/analysis/screening/replicate.py --selection-null   # the best of 32 by chance
+python3 -I docs/paper/analysis/screening/replicate_obedience.py   # replication, descriptive
 ```
 
 `reproduce.py` feeds the published records to the frozen scripts, unchanged, and matches the output
